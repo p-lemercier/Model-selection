@@ -1,0 +1,43 @@
+project:
+  type: website
+  output-dir: docs
+
+website:
+  title: "Model selection"
+  reader-mode: false
+  sidebar:
+    style: "docked"
+    search: true
+    tools:
+      - icon: github
+        menu:
+          - text: Source Code
+            url:  https://code.com
+          - text: Report a Bug
+            url:  https://bugs.com
+    contents:
+      - href: index.qmd
+        text: Introduction
+      - section: "Explanatory Variables"
+        contents:
+          - explanatory variables/introduction.qmd
+          - section: "Application of Restricted Cubic Splines"
+            contents:
+              - href: explanatory variables/spline_linear.qmd
+                text: Linear Regression
+              - href: explanatory variables/spline_logistic.qmd
+                text: Logistic Regression
+              - href: explanatory variables/spline_cox.qmd
+                text: Cox Proportional Hazards Regression
+      - about.qmd
+
+format:
+  html:
+    theme:
+      light: flatly
+      dark: darkly
+    code-fold: true
+    toc: true
+
+editor: visual
+

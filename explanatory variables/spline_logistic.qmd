@@ -1,0 +1,178 @@
+---
+title: "Spline in a Logistic regression model"
+---
+
+# Exemple in diabetes
+
+```{r}
+#| message: false
+#| warning: false
+
+library(dplyr)
+library(ggplot2)
+library(broom)
+library(mlbench)
+library(rms)
+library(emmeans)
+library(ggeffects)
+
+```
+
+# The Pima Indians Diabetes Database dataset
+
+```{r}
+data("PimaIndiansDiabetes2", package = "mlbench")
+
+PimaIndiansDiabetes2 <- PimaIndiansDiabetes2
+
+PimaIndiansDiabetes2$diabetes <- relevel(factor(PimaIndiansDiabetes2$diabetes), ref = "neg")
+
+str(PimaIndiansDiabetes2)
+```
+
+# Distribution
+
+```{r}
+dt_means <- aggregate(x = PimaIndiansDiabetes2$age, by = list(PimaIndiansDiabetes2$diabetes), FUN = mean) %>%
+  as.data.frame() %>%
+  rename(diabetes = "Group.1")
+
+ggplot(PimaIndiansDiabetes2, aes(x = age, fill = diabetes, color = diabetes)) + 
+  geom_histogram(aes(y=stat(width*density)), binwidth = 1) +
+  geom_boxplot(aes(y = -.02), width = .02, fill = NA, show.legend = FALSE) +
+  geom_point(data = dt_means, aes(x = x, y = -.02), shape = 18, colour = "darkred", size = 4) +
+  facet_grid(diabetes ~ .) +
+  scale_y_continuous(labels = scales::percent) +
+  theme_bw() + theme(legend.position="none")
+```
+
+
+## Modelise age as continous variable
+
+```{r}
+log_reg <- glm(diabetes ~ age, data = PimaIndiansDiabetes2, family = binomial)
+
+# Summarize the model
+summary(log_reg)
+```
+
+### Residuals
+
+plot residuals vs x 
+
+```{r}
+log_reg.pred <- augment(log_reg)
+  
+ggplot(log_reg.pred, aes(x=age, y=.resid)) +
+  geom_hline(yintercept=0, color = "red", linetype = "dashed") +
+  geom_point(alpha = 0.2) +
+  stat_smooth(method = "loess", formula = y ~ x, alpha = 0.17) + 
+  theme_bw()+
+  theme(legend.text = element_text(size = 25),
+        text = element_text(size=25)) +
+  labs(x = "Age",
+       y = "Raw residuals") + 
+  annotate("rect", 
+           xmin = quantile(log_reg.pred$age,0.025),
+           xmax = quantile(log_reg.pred$age,0.975),
+           ymin = -Inf, ymax = Inf, alpha = 0.2, fill = "#99CCCC")
+```
+
+## Splines
+
+```{r}
+log_reg_spl <- glm(diabetes ~ rcs(age), data = PimaIndiansDiabetes2, family = binomial)
+
+anova(log_reg, log_reg_spl, test = "LRT")
+```
+
+The model with splines tends to fit better
+
+```{r}
+AIC(log_reg, log_reg_spl)
+```
+
+```{r}
+anova(log_reg_spl)
+```
+
+```{r}
+summary(log_reg_spl)
+```
+
+😭
+
+## Compare predictions
+
+```{r}
+log_reg_spl.pred <- predict(log_reg_spl, type = "response")
+
+ggplot(log_reg.pred, aes(x = age)) +
+  geom_line(aes(y = .fitted, color = "Logistic regression"), linewidth = 1) +
+  geom_line(aes(y = log_reg_spl.pred, color = "Logistic regression with spline"), linewidth = 1) +
+  scale_color_manual(values=c("Logistic regression" = "cyan4",
+                              "Logistic regression with spline" = "goldenrod2")) +
+  labs(x = "Age", y = "Probability of diabete", color = "") +
+  theme_bw() +
+  theme(legend.title = element_text(size = 15, face = 'bold'),
+        legend.text = element_text(size = 15),
+        text = element_text(size=15),legend.position="bottom")
+```
+
+```{r}
+#### Visualization
+
+ggemmeans(log_reg, terms = "age") %>%
+  plot(add.data = F)
+
+ggemmeans(log_reg_spl, terms = "age") %>%
+  plot(add.data = F)
+```
+
+## Contrast
+
+We compare to age 45.
+
+```{r}
+age_range <- with(PimaIndiansDiabetes2, seq(min(age),max(age), by = .2))
+ref <- 45
+
+log_reg.emm <- emmeans(log_reg, ~ age, at = list(age = age_range), type = "response")
+
+log_reg.ctrs <- emmeans::contrast(log_reg.emm, "trt.vs.ctrl", ref = paste0("age", ref), 
+                                  infer = T,  adjust = "none")
+
+log_reg.ctrs %>%
+  as.data.frame() %>%
+  bind_cols("age" = age_range[age_range != ref]) %>% 
+  ggplot(., aes(x=age, y=odds.ratio)) +
+  geom_line() +
+  geom_ribbon(aes(ymin=asymp.LCL, ymax=asymp.UCL), alpha=0.15, linetype=0) +
+  geom_hline(yintercept=1, color = "red") +
+  labs(x = "age", y = "Odds Ratio") +
+  theme_bw() +
+  theme(legend.title = element_text(size = 15, face = 'bold'),
+        legend.text = element_text(size = 15),
+        text = element_text(size=15),legend.position="bottom")
+```
+
+```{r}
+log_reg_spl.emm <- emmeans(log_reg_spl, ~ age, at = list(age = age_range), type = "response")
+
+log_reg_spl.ctrs <- emmeans::contrast(log_reg_spl.emm, "trt.vs.ctrl", ref = paste0("age", ref), 
+                                      infer = T,  adjust = "none")
+  
+log_reg_spl.ctrs %>%
+  as.data.frame() %>%
+  bind_cols("age" = age_range[age_range != ref]) %>% 
+  ggplot(., aes(x=age, y=odds.ratio)) +
+  geom_line() +
+  geom_ribbon(aes(ymin=asymp.LCL, ymax=asymp.UCL), alpha=0.15, linetype=0) +
+  geom_hline(yintercept=1, color = "red") +
+  labs(x = "age", y = "Odds Ratio") +
+  theme_bw() +
+  theme(legend.title = element_text(size = 15, face = 'bold'),
+        legend.text = element_text(size = 15),
+        text = element_text(size=15),legend.position="bottom")
+```
+

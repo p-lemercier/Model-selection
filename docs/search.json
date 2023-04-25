@@ -1,0 +1,268 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Introduction",
+    "section": "",
+    "text": "All models are wrong\n\n\nExplanatory and predictive models"
+  },
+  {
+    "objectID": "continuous variables/introduction.html",
+    "href": "continuous variables/introduction.html",
+    "title": "Handling continuous variable",
+    "section": "",
+    "text": "When building a regression model, several strategies exist for continuous variables:"
+  },
+  {
+    "objectID": "continuous variables/introduction.html#variable-transformation",
+    "href": "continuous variables/introduction.html#variable-transformation",
+    "title": "Handling continuous variable",
+    "section": "Variable Transformation",
+    "text": "Variable Transformation\nPolynomials\nFractional polynomials"
+  },
+  {
+    "objectID": "continuous variables/introduction.html#spline",
+    "href": "continuous variables/introduction.html#spline",
+    "title": "Handling continuous variable",
+    "section": "Spline",
+    "text": "Spline\n\n\nCode\nlibrary(splines)\nlibrary(dplyr)\n\n\n\nAttaching package: 'dplyr'\n\n\nThe following objects are masked from 'package:stats':\n\n    filter, lag\n\n\nThe following objects are masked from 'package:base':\n\n    intersect, setdiff, setequal, union\n\n\nCode\nlibrary(ggplot2)\nlibrary(patchwork)\n\nset.seed(1)\n\n\n\n\nCode\ndata <- tibble(x = seq(from = 0, to = 6, by = .025)) %>%\n  mutate(y = sin(2*x) + x -.1*x^2 + 2 + rnorm(length(x), sd = .3))\n\ng_template <- ggplot(data, aes(x = x, y = y)) +\n  geom_point() +\n  geom_vline(xintercept = c(0, 6), linetype = \"dashed\", color = \"red\") +\n  theme_bw()\n\n\ng_template + \n  geom_smooth(method = lm, formula = y ~ bs(x, degree = 1, knots = c(1, 2.5, 4, 5.7))) +\n  geom_vline(xintercept = c(1, 2.5, 4, 5.7), linetype = \"dashed\") +\n  ggtitle(\"Linear spline (4 knots)\") +\n  g_template + geom_smooth(method = lm, formula = y ~ bs(x, degree = 2, knots = c(1, 2.5, 4, 5.7))) +\n  geom_vline(xintercept = c(1, 2.5, 4, 5.7), linetype = \"dashed\") +\n  ggtitle(\"Quadratic spline (4 knots)\") +\n  g_template + geom_smooth(method = lm, formula = y ~ bs(x, degree = 3, knots = c(1, 2.5, 4, 5.7))) +\n  geom_vline(xintercept = c(1, 2.5, 4, 5.7), linetype = \"dashed\") +\n  ggtitle(\"Cubic spline (4 knots)\")\n\n\n\n\n\nCode\ng_template + \n  geom_smooth(method = lm, formula = y ~ bs(x, degree = 3, knots = c(3))) +\n  geom_vline(xintercept = c(3), linetype = \"dashed\") +\n  ggtitle(\"Cubic spline (1 knots)\") +\n  g_template + geom_smooth(method = lm, formula = y ~ bs(x, degree = 3, knots = c(1, 2.5, 4, 5.7))) +\n  geom_vline(xintercept = c(1, 2.5, 4, 5.7), linetype = \"dashed\") +\n  ggtitle(\"Cubic spline (4 knots)\") +\n  g_template + geom_smooth(method = lm, formula = y ~ bs(x, degree = 3, knots = seq(from = 0.1, to = 5.9, by = .2))) +\n  geom_vline(xintercept = seq(from = 0.1, to = 5.9, by = .2), linetype = \"dashed\") +\n  ggtitle(\"Cubic spline (30 knots)\")\n\n\n\n\n\nExample of splines implementations in regression models :\n\nLinear regression\nLogistic regression\nCox proportional-hazards model\nLinear mixed model"
+  },
+  {
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "About",
+    "section": "",
+    "text": "This is a Quarto website.\nQuarto enables you to weave together content and executable code into a finished document. To learn more about Quarto websites visit https://quarto.org/docs/websites."
+  },
+  {
+    "objectID": "continuous variables/spline_linear.html",
+    "href": "continuous variables/spline_linear.html",
+    "title": "Spline in a Linear regression model",
+    "section": "",
+    "text": "Code\nlibrary(dplyr)\nlibrary(ggplot2)\nlibrary(broom)\nlibrary(mlbench)\nlibrary(rms)\nlibrary(emmeans)\nlibrary(ggeffects)"
+  },
+  {
+    "objectID": "continuous variables/spline_linear.html#modelise-age-as-continous-variable",
+    "href": "continuous variables/spline_linear.html#modelise-age-as-continous-variable",
+    "title": "Spline in a Linear regression model",
+    "section": "Modelise age as continous variable",
+    "text": "Modelise age as continous variable\n\n\nCode\nlin_reg <- lm(glucose ~ age, data = PimaIndiansDiabetes2)\n\n# Summarize the model\nsummary(lin_reg)\n\n\n\nCall:\nlm(formula = glucose ~ age, data = PimaIndiansDiabetes2)\n\nResiduals:\n    Min      1Q  Median      3Q     Max \n-88.058 -21.310  -3.727  17.615  85.123 \n\nCoefficients:\n            Estimate Std. Error t value Pr(>|t|)    \n(Intercept) 98.63245    3.19767  30.845  < 2e-16 ***\nage          0.69292    0.09061   7.647 6.21e-14 ***\n---\nSignif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\n\nResidual standard error: 29.45 on 761 degrees of freedom\nMultiple R-squared:  0.07136,   Adjusted R-squared:  0.07014 \nF-statistic: 58.48 on 1 and 761 DF,  p-value: 6.208e-14\n\n\n\nResiduals\nplot residuals vs x\n\n\nCode\nlin_reg.pred <- augment(lin_reg)\n  \nggplot(lin_reg.pred, aes(x=age, y=.resid)) +\n  geom_hline(yintercept=0, color = \"red\", linetype = \"dashed\") +\n  geom_point(alpha = 0.2) +\n  stat_smooth(method = \"loess\", formula = y ~ x, alpha = 0.17) + \n  theme_bw()+\n  theme(legend.text = element_text(size = 25),\n        text = element_text(size=25)) +\n  labs(x = \"Age\",\n       y = \"Raw residuals\") + \n  annotate(\"rect\", \n           xmin = quantile(lin_reg.pred$age,0.025),\n           xmax = quantile(lin_reg.pred$age,0.975),\n           ymin = -Inf, ymax = Inf, alpha = 0.2, fill = \"#99CCCC\")"
+  },
+  {
+    "objectID": "continuous variables/spline_linear.html#splines",
+    "href": "continuous variables/spline_linear.html#splines",
+    "title": "Spline in a Linear regression model",
+    "section": "Splines",
+    "text": "Splines\n\n\nCode\nlin_reg_spl <- lm(glucose ~ rcs(age), data = PimaIndiansDiabetes2)\n\nanova(lin_reg, lin_reg_spl, test = \"LRT\")\n\n\nAnalysis of Variance Table\n\nModel 1: glucose ~ age\nModel 2: glucose ~ rcs(age)\n  Res.Df    RSS Df Sum of Sq Pr(>Chi)\n1    761 659805                      \n2    758 654730  3    5075.5   0.1178\n\n\nThe model with splines tends to fit better\n\n\nCode\nAIC(lin_reg, lin_reg_spl)\n\n\n            df      AIC\nlin_reg      3 7331.043\nlin_reg_spl  6 7331.151\n\n\n\n\nCode\nanova(lin_reg_spl)\n\n\nAnalysis of Variance Table\n\nResponse: glucose\n           Df Sum Sq Mean Sq F value    Pr(>F)    \nrcs(age)    4  55778 13944.6  16.144 1.073e-12 ***\nResiduals 758 654730   863.8                      \n---\nSignif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\n\n\n\n\nCode\nsummary(lin_reg_spl)\n\n\n\nCall:\nlm(formula = glucose ~ rcs(age), data = PimaIndiansDiabetes2)\n\nResiduals:\n    Min      1Q  Median      3Q     Max \n-84.835 -21.164  -4.087  18.592  87.798 \n\nCoefficients:\n               Estimate Std. Error t value Pr(>|t|)   \n(Intercept)     97.0744    34.8681   2.784   0.0055 **\nrcs(age)age      0.6411     1.5441   0.415   0.6781   \nrcs(age)age'    33.8231    48.3944   0.699   0.4848   \nrcs(age)age''  -69.2920    86.5649  -0.800   0.4237   \nrcs(age)age'''  44.1343    44.2471   0.997   0.3189   \n---\nSignif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\n\nResidual standard error: 29.39 on 758 degrees of freedom\nMultiple R-squared:  0.0785,    Adjusted R-squared:  0.07364 \nF-statistic: 16.14 on 4 and 758 DF,  p-value: 1.073e-12\n\n\n😭"
+  },
+  {
+    "objectID": "continuous variables/spline_linear.html#compare-predictions",
+    "href": "continuous variables/spline_linear.html#compare-predictions",
+    "title": "Spline in a Linear regression model",
+    "section": "Compare predictions",
+    "text": "Compare predictions\n\n\nCode\nlin_reg_spl.pred <- predict(lin_reg_spl, type = \"response\", interval = \"confidence\")\n\nggplot(lin_reg.pred, aes(x = age)) +\n  stat_smooth(aes(y = glucose, color = \"LOESS\"), method = \"loess\", formula = y ~ x, se = FALSE,) + \n  geom_line(aes(y = .fitted, color = \"Linear regression\"), linewidth = 1) +\n  geom_line(aes(y = lin_reg_spl.pred[,c(\"fit\")], color = \"Linear regression with spline\"), linewidth = 1) +\n  scale_color_manual(values=c(\"LOESS\" = \"#CC3333\", \n                              \"Linear regression\" = \"cyan4\", \n                              \"Linear regression with spline\" = \"goldenrod2\")) +\n  labs(x = \"Age\", y = \"Glucose\", color = \"\") +\n  theme_bw() +\n  theme(legend.title = element_text(size = 15, face = 'bold'),\n        legend.text = element_text(size = 15),\n        text = element_text(size=15),legend.position=\"bottom\")\n\n\n\n\n\n\n\nCode\n#### Visualization\n\nggemmeans(lin_reg, terms = \"age\") %>%\n  plot(add.data = F)\n\n\n\n\n\nCode\nggemmeans(lin_reg_spl, terms = \"age\") %>%\n  plot(add.data = F)"
+  },
+  {
+    "objectID": "continuous variables/spline_linear.html#contrast",
+    "href": "continuous variables/spline_linear.html#contrast",
+    "title": "Spline in a Linear regression model",
+    "section": "Contrast",
+    "text": "Contrast\nWe compare to age 30.\n\n\nCode\nage_range <- with(PimaIndiansDiabetes2, min(age):max(age))\nref <- 30\n\nlin_reg.emm <- emmeans(lin_reg, ~ age, at = list(age = age_range), type = \"response\")\n\nlin_reg.ctrs <- emmeans::contrast(lin_reg.emm, \"trt.vs.ctrl\", ref = paste0(\"age\", ref), \n                                  infer = T,  adjust = \"none\")\n\nlin_reg.ctrs %>%\n  as.data.frame() %>%\n  bind_cols(\"age\" = age_range[age_range != ref]) %>% \n  ggplot(., aes(x=age, y=estimate)) +\n  geom_line() +\n  geom_ribbon(aes(ymin=lower.CL, ymax=upper.CL), alpha=0.15, linetype=0) +\n  geom_hline(yintercept=0, color = \"red\") +\n  labs(x = \"age\", y = \"Glucose (Difference)\") +\n  theme_bw() +\n  theme(legend.title = element_text(size = 15, face = 'bold'),\n        legend.text = element_text(size = 15),\n        text = element_text(size=15),legend.position=\"bottom\")\n\n\n\n\n\n\n\nCode\nlin_reg_spl.emm <- emmeans(lin_reg_spl, ~ age, at = list(age = age_range), type = \"response\")\n\nlin_reg_spl.ctrs <- emmeans::contrast(lin_reg_spl.emm, \"trt.vs.ctrl\", ref = paste0(\"age\", ref), \n                                      infer = T,  adjust = \"none\")\n  \nlin_reg_spl.ctrs %>%\n  as.data.frame() %>%\n  bind_cols(\"age\" = age_range[age_range != ref]) %>% \n  ggplot(., aes(x=age, y=estimate)) +\n  geom_line() +\n  geom_ribbon(aes(ymin=lower.CL, ymax=upper.CL), alpha=0.15, linetype=0) +\n  geom_hline(yintercept=0, color = \"red\") +\n  labs(x = \"age\", y = \"Glucose (Difference)\") +\n  theme_bw() +\n  theme(legend.title = element_text(size = 15, face = 'bold'),\n        legend.text = element_text(size = 15),\n        text = element_text(size=15),legend.position=\"bottom\")"
+  },
+  {
+    "objectID": "continuous variables/spline_logistic.html",
+    "href": "continuous variables/spline_logistic.html",
+    "title": "Spline in a Logistic regression model",
+    "section": "",
+    "text": "Code\nlibrary(dplyr)\nlibrary(ggplot2)\nlibrary(broom)\nlibrary(mlbench)\nlibrary(rms)\nlibrary(emmeans)\nlibrary(ggeffects)"
+  },
+  {
+    "objectID": "continuous variables/spline_logistic.html#modelise-age-as-continous-variable",
+    "href": "continuous variables/spline_logistic.html#modelise-age-as-continous-variable",
+    "title": "Spline in a Logistic regression model",
+    "section": "Modelise age as continous variable",
+    "text": "Modelise age as continous variable\n\n\nCode\nlog_reg <- glm(diabetes ~ age, data = PimaIndiansDiabetes2, family = binomial)\n\n# Summarize the model\nsummary(log_reg)\n\n\n\nCall:\nglm(formula = diabetes ~ age, family = binomial, data = PimaIndiansDiabetes2)\n\nDeviance Residuals: \n    Min       1Q   Median       3Q      Max  \n-1.7809  -0.8512  -0.7505   1.2811   1.6950  \n\nCoefficients:\n             Estimate Std. Error z value Pr(>|z|)    \n(Intercept) -2.047511   0.238847  -8.572  < 2e-16 ***\nage          0.042026   0.006587   6.380 1.77e-10 ***\n---\nSignif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\n\n(Dispersion parameter for binomial family taken to be 1)\n\n    Null deviance: 993.48  on 767  degrees of freedom\nResidual deviance: 950.72  on 766  degrees of freedom\nAIC: 954.72\n\nNumber of Fisher Scoring iterations: 4\n\n\n\nResiduals\nplot residuals vs x\n\n\nCode\nlog_reg.pred <- augment(log_reg)\n  \nggplot(log_reg.pred, aes(x=age, y=.resid)) +\n  geom_hline(yintercept=0, color = \"red\", linetype = \"dashed\") +\n  geom_point(alpha = 0.2) +\n  stat_smooth(method = \"loess\", formula = y ~ x, alpha = 0.17) + \n  theme_bw()+\n  theme(legend.text = element_text(size = 25),\n        text = element_text(size=25)) +\n  labs(x = \"Age\",\n       y = \"Raw residuals\") + \n  annotate(\"rect\", \n           xmin = quantile(log_reg.pred$age,0.025),\n           xmax = quantile(log_reg.pred$age,0.975),\n           ymin = -Inf, ymax = Inf, alpha = 0.2, fill = \"#99CCCC\")"
+  },
+  {
+    "objectID": "continuous variables/spline_logistic.html#splines",
+    "href": "continuous variables/spline_logistic.html#splines",
+    "title": "Spline in a Logistic regression model",
+    "section": "Splines",
+    "text": "Splines\n\n\nCode\nlog_reg_spl <- glm(diabetes ~ rcs(age), data = PimaIndiansDiabetes2, family = binomial)\n\nanova(log_reg, log_reg_spl, test = \"LRT\")\n\n\nAnalysis of Deviance Table\n\nModel 1: diabetes ~ age\nModel 2: diabetes ~ rcs(age)\n  Resid. Df Resid. Dev Df Deviance  Pr(>Chi)    \n1       766     950.72                          \n2       763     898.97  3   51.748 3.389e-11 ***\n---\nSignif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\n\n\nThe model with splines tends to fit better\n\n\nCode\nAIC(log_reg, log_reg_spl)\n\n\n            df      AIC\nlog_reg      2 954.7203\nlog_reg_spl  5 908.9722\n\n\n\n\nCode\nanova(log_reg_spl)\n\n\nAnalysis of Deviance Table\n\nModel: binomial, link: logit\n\nResponse: diabetes\n\nTerms added sequentially (first to last)\n\n         Df Deviance Resid. Df Resid. Dev\nNULL                       767     993.48\nrcs(age)  4   94.512       763     898.97\n\n\n\n\nCode\nsummary(log_reg_spl)\n\n\n\nCall:\nglm(formula = diabetes ~ rcs(age), family = binomial, data = PimaIndiansDiabetes2)\n\nDeviance Residuals: \n    Min       1Q   Median       3Q      Max  \n-1.3061  -0.9169  -0.5292   1.1064   2.1482  \n\nCoefficients:\n               Estimate Std. Error z value Pr(>|z|)   \n(Intercept)     -8.7178     3.2530  -2.680  0.00736 **\nrcs(age)age      0.3102     0.1419   2.186  0.02880 * \nrcs(age)age'    -3.7094     4.1087  -0.903  0.36661   \nrcs(age)age''    5.7888     7.2392   0.800  0.42391   \nrcs(age)age'''  -2.2401     3.5722  -0.627  0.53060   \n---\nSignif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\n\n(Dispersion parameter for binomial family taken to be 1)\n\n    Null deviance: 993.48  on 767  degrees of freedom\nResidual deviance: 898.97  on 763  degrees of freedom\nAIC: 908.97\n\nNumber of Fisher Scoring iterations: 4\n\n\n😭"
+  },
+  {
+    "objectID": "continuous variables/spline_logistic.html#compare-predictions",
+    "href": "continuous variables/spline_logistic.html#compare-predictions",
+    "title": "Spline in a Logistic regression model",
+    "section": "Compare predictions",
+    "text": "Compare predictions\n\n\nCode\nlog_reg_spl.pred <- predict(log_reg_spl, type = \"response\")\n\nggplot(log_reg.pred, aes(x = age)) +\n  geom_line(aes(y = .fitted, color = \"Logistic regression\"), linewidth = 1) +\n  geom_line(aes(y = log_reg_spl.pred, color = \"Logistic regression with spline\"), linewidth = 1) +\n  scale_color_manual(values=c(\"Logistic regression\" = \"cyan4\",\n                              \"Logistic regression with spline\" = \"goldenrod2\")) +\n  labs(x = \"Age\", y = \"Probability of diabete\", color = \"\") +\n  theme_bw() +\n  theme(legend.title = element_text(size = 15, face = 'bold'),\n        legend.text = element_text(size = 15),\n        text = element_text(size=15),legend.position=\"bottom\")\n\n\n\n\n\n\n\nCode\n#### Visualization\n\nggemmeans(log_reg, terms = \"age\") %>%\n  plot(add.data = F)\n\n\nData were 'prettified'. Consider using `terms=\"age [all]\"` to get smooth\n  plots.\n\n\n\n\n\nCode\nggemmeans(log_reg_spl, terms = \"age\") %>%\n  plot(add.data = F)"
+  },
+  {
+    "objectID": "continuous variables/spline_logistic.html#contrast",
+    "href": "continuous variables/spline_logistic.html#contrast",
+    "title": "Spline in a Logistic regression model",
+    "section": "Contrast",
+    "text": "Contrast\nWe compare to age 45.\n\n\nCode\nage_range <- with(PimaIndiansDiabetes2, seq(min(age),max(age), by = .2))\nref <- 45\n\nlog_reg.emm <- emmeans(log_reg, ~ age, at = list(age = age_range), type = \"response\")\n\nlog_reg.ctrs <- emmeans::contrast(log_reg.emm, \"trt.vs.ctrl\", ref = paste0(\"age\", ref), \n                                  infer = T,  adjust = \"none\")\n\nlog_reg.ctrs %>%\n  as.data.frame() %>%\n  bind_cols(\"age\" = age_range[age_range != ref]) %>% \n  ggplot(., aes(x=age, y=odds.ratio)) +\n  geom_line() +\n  geom_ribbon(aes(ymin=asymp.LCL, ymax=asymp.UCL), alpha=0.15, linetype=0) +\n  geom_hline(yintercept=1, color = \"red\") +\n  labs(x = \"age\", y = \"Odds Ratio\") +\n  theme_bw() +\n  theme(legend.title = element_text(size = 15, face = 'bold'),\n        legend.text = element_text(size = 15),\n        text = element_text(size=15),legend.position=\"bottom\")\n\n\n\n\n\n\n\nCode\nlog_reg_spl.emm <- emmeans(log_reg_spl, ~ age, at = list(age = age_range), type = \"response\")\n\nlog_reg_spl.ctrs <- emmeans::contrast(log_reg_spl.emm, \"trt.vs.ctrl\", ref = paste0(\"age\", ref), \n                                      infer = T,  adjust = \"none\")\n  \nlog_reg_spl.ctrs %>%\n  as.data.frame() %>%\n  bind_cols(\"age\" = age_range[age_range != ref]) %>% \n  ggplot(., aes(x=age, y=odds.ratio)) +\n  geom_line() +\n  geom_ribbon(aes(ymin=asymp.LCL, ymax=asymp.UCL), alpha=0.15, linetype=0) +\n  geom_hline(yintercept=1, color = \"red\") +\n  labs(x = \"age\", y = \"Odds Ratio\") +\n  theme_bw() +\n  theme(legend.title = element_text(size = 15, face = 'bold'),\n        legend.text = element_text(size = 15),\n        text = element_text(size=15),legend.position=\"bottom\")"
+  },
+  {
+    "objectID": "continuous variables/spline_cox.html",
+    "href": "continuous variables/spline_cox.html",
+    "title": "Spline in a Cox regression model",
+    "section": "",
+    "text": "Code\nlibrary(dplyr)\nlibrary(ggplot2)\nlibrary(survival)\nlibrary(survminer)\nlibrary(rms)\nlibrary(emmeans)\n\n# see https://cran.r-project.org/web/packages/survival/vignettes/splines.pdf"
+  },
+  {
+    "objectID": "continuous variables/spline_cox.html#modelise-age-as-continous-variable",
+    "href": "continuous variables/spline_cox.html#modelise-age-as-continous-variable",
+    "title": "Spline in a Cox regression model",
+    "section": "Modelise age as continous variable",
+    "text": "Modelise age as continous variable\n\n\nCode\nmcox <- coxph(Surv(rfstime, status) ~ meno + age, data=gbsg)\n\n# Summarize the model\nsummary(mcox, scale=365.25)\n\n\nCall:\ncoxph(formula = Surv(rfstime, status) ~ meno + age, data = gbsg)\n\n  n= 686, number of events= 299 \n\n           coef  exp(coef)   se(coef)      z Pr(>|z|)  \nmeno  1.107e+02  1.143e+48  6.519e+01  1.698   0.0896 .\nage  -5.833e+00  2.928e-03  3.268e+00 -1.785   0.0742 .\n---\nSignif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\n\n     exp(coef) exp(-coef) lower .95  upper .95\nmeno 1.143e+48  8.748e-49 3.717e-08 3.515e+103\nage  2.928e-03  3.415e+02 4.841e-06  1.771e+00\n\nConcordance= 0.542  (se = 0.018 )\nLikelihood ratio test= 3.45  on 2 df,   p=0.2\nWald test            = 3.48  on 2 df,   p=0.2\nScore (logrank) test = 3.49  on 2 df,   p=0.2\n\n\n\nResiduals\n\n\nCode\n# survminer::ggcoxdiagnostics(mcox, type = \"martingale\")\n\nmartResb <- residuals(mcox, process = \"Event\")\n\nggplot(gbsg, aes(x=age, y=martResb)) +\n  geom_point(alpha = 0.2) +\n  stat_smooth(method = \"loess\", formula = y ~ x, alpha = 0.17) + \n  geom_hline(yintercept=0, color = \"red\") + \n  annotate(\"rect\", xmin = quantile(gbsg$age,0.025),\n           xmax = quantile(gbsg$age,0.975),\n           ymin = -Inf, ymax = Inf, alpha = 0.2, fill = \"#99CCCC\") +\n  labs(x = \"Age\",\n       y = \"Martingale residuals\") + \n  theme_bw()"
+  },
+  {
+    "objectID": "continuous variables/spline_cox.html#splines",
+    "href": "continuous variables/spline_cox.html#splines",
+    "title": "Spline in a Cox regression model",
+    "section": "Splines",
+    "text": "Splines\n\n\nCode\nmcox_spl <- coxph(Surv(rfstime, status) ~ meno + rcs(age), data=gbsg)\n\nanova(mcox, mcox_spl, test = \"LRT\")\n\n\nAnalysis of Deviance Table\n Cox model: response is  Surv(rfstime, status)\n Model 1: ~ meno + age\n Model 2: ~ meno + rcs(age)\n   loglik  Chisq Df Pr(>|Chi|)    \n1 -1786.4                         \n2 -1776.6 19.559  3  0.0002095 ***\n---\nSignif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\n\n\nThe model with splines tends to fit better\n\n\nCode\nAIC(mcox, mcox_spl)\n\n\n         df      AIC\nmcox      2 3576.761\nmcox_spl  5 3563.201\n\n\n\n\nCode\nanova(mcox_spl)\n\n\nAnalysis of Deviance Table\n Cox model: response is Surv(rfstime, status)\nTerms added sequentially (first to last)\n\n          loglik   Chisq Df Pr(>|Chi|)    \nNULL     -1788.1                          \nmeno     -1788.0  0.2819  1  0.5954627    \nrcs(age) -1776.6 22.7262  4  0.0001436 ***\n---\nSignif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\n\n\n\n\nCode\nsummary(mcox_spl, scale=365.25)\n\n\nCall:\ncoxph(formula = Surv(rfstime, status) ~ meno + rcs(age), data = gbsg)\n\n  n= 686, number of events= 299 \n\n                      coef   exp(coef)    se(coef)      z Pr(>|z|)    \nmeno            -2.911e+00   5.442e-02   8.230e+01 -0.035  0.97179    \nrcs(age)age     -4.026e+01   3.263e-18   8.286e+00 -4.859 1.18e-06 ***\nrcs(age)age'     1.416e+02   3.230e+61   4.601e+01  3.078  0.00208 ** \nrcs(age)age''   -5.682e+02  1.720e-247   2.648e+02 -2.145  0.03191 *  \nrcs(age)age'''   5.473e+02  4.781e+237   4.111e+02  1.331  0.18316    \n---\nSignif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\n\n                exp(coef) exp(-coef)  lower .95  upper .95\nmeno            5.442e-02  1.837e+01  4.789e-72  6.186e+68\nrcs(age)age     3.263e-18  3.065e+17  2.889e-25  3.686e-11\nrcs(age)age'    3.230e+61  3.096e-62  2.227e+22 4.685e+100\nrcs(age)age''  1.720e-247 5.815e+246  0.000e+00  4.582e-22\nrcs(age)age''' 4.781e+237 2.092e-238 5.109e-113        Inf\n\nConcordance= 0.563  (se = 0.019 )\nLikelihood ratio test= 23.01  on 5 df,   p=3e-04\nWald test            = 27.22  on 5 df,   p=5e-05\nScore (logrank) test = 27.56  on 5 df,   p=4e-05\n\n\n😭"
+  },
+  {
+    "objectID": "continuous variables/spline_cox.html#compare-predictions",
+    "href": "continuous variables/spline_cox.html#compare-predictions",
+    "title": "Spline in a Cox regression model",
+    "section": "Compare predictions",
+    "text": "Compare predictions\nWe predict survival probability at 3-years according to age\n\n\nCode\nage_range <- seq(24, 90, by = 1)\nt <- 3\n\nmcox_pred <- summary(survfit(mcox, newdata = data.frame(age = age_range, meno = 1)), \n                     times = t*365.25, scale=365.25)\n\nmcox_spl_pred <- summary(survfit(mcox_spl, newdata = data.frame(age = age_range, meno = 1)), \n                     times = t*365.25, scale=365.25)\n\nmcox_pred_all <- bind_cols(age = rep(age_range, 2),\n                           Model = rep(c(\"Cox\", \"Cox_spline\"), each = length(age_range)),\n                           Time = t,\n                           Surv_Prob = c(mcox_pred$surv, mcox_spl_pred$surv), \n                           Lower = c(mcox_pred$lower, mcox_spl_pred$lower), \n                           Upper = c(mcox_pred$upper, mcox_spl_pred$upper))\n\n\nggplot(mcox_pred_all, aes(x = age, y = Surv_Prob)) +\n  geom_line(aes(color = Model), linewidth = 1) +\n  geom_ribbon(aes(ymin=Lower, ymax=Upper, fill = Model), alpha=.2) +\n  scale_discrete_manual(c(\"color\", \"fill\"),\n                        values=c(\"Cox\" = \"cyan4\", \"Cox_spline\" = \"goldenrod2\")) +\n  labs(x = \"Age\", y = \"Survival at 3 years\", color = \"\", fill = \"\") +\n  theme_bw() +\n  theme(legend.title = element_text(size = 15, face = 'bold'),\n        legend.text = element_text(size = 15),\n        text = element_text(size=15), legend.position=\"bottom\")\n\n\n\n\n\n\n\nCode\n# #### Visualization\n# library(ggeffects)\n# ggpredict(mcox_spl, terms = \"age\", type = \"survival\") %>%\n#   plot()"
+  },
+  {
+    "objectID": "continuous variables/spline_cox.html#contrast",
+    "href": "continuous variables/spline_cox.html#contrast",
+    "title": "Spline in a Cox regression model",
+    "section": "Contrast",
+    "text": "Contrast\nWe estimate the HR compare to age 45.\n\n\nCode\nref <- 45\n\nmcox_spl_emm <- emmeans(mcox_spl, ~ age, at = list(age = age_range), type = \"response\")\n\nmcox_spl_ctrs <- emmeans::contrast(mcox_spl_emm, \"trt.vs.ctrl\", ref = paste0(\"age\", ref), \n                                   infer = T,  adjust = \"none\")\n  \nmcox_spl_ctrs %>%\n  as.data.frame() %>%\n  bind_cols(\"age\" = age_range[age_range != ref]) %>% \n  ggplot(., aes(x=age, y=ratio)) +\n  geom_line() +\n  geom_ribbon(aes(ymin=asymp.LCL, ymax=asymp.UCL), alpha=0.15, linetype=0) +\n  geom_hline(yintercept=1, color = \"red\") +\n  labs(x = \"age\", y = \"Hazard ratio\") +\n  theme_bw() +\n  theme(legend.title = element_text(size = 15, face = 'bold'),\n        legend.text = element_text(size = 15),\n        text = element_text(size=15),legend.position=\"bottom\")"
+  },
+  {
+    "objectID": "explanatory variables/introduction.html",
+    "href": "explanatory variables/introduction.html",
+    "title": "Handling Continuous Variables",
+    "section": "",
+    "text": "When building a regression model, several strategies exist for continuous variables:"
+  },
+  {
+    "objectID": "explanatory variables/introduction.html#variable-transformation",
+    "href": "explanatory variables/introduction.html#variable-transformation",
+    "title": "Handling Continuous Variables",
+    "section": "Variable Transformation",
+    "text": "Variable Transformation\nPolynomials\nFractional polynomials"
+  },
+  {
+    "objectID": "explanatory variables/introduction.html#spline",
+    "href": "explanatory variables/introduction.html#spline",
+    "title": "Handling Continuous Variables",
+    "section": "Spline",
+    "text": "Spline\n\n\nCode\nlibrary(splines)\nlibrary(dplyr)\n\n\n\nAttaching package: 'dplyr'\n\n\nThe following objects are masked from 'package:stats':\n\n    filter, lag\n\n\nThe following objects are masked from 'package:base':\n\n    intersect, setdiff, setequal, union\n\n\nCode\nlibrary(ggplot2)\nlibrary(patchwork)\n\nset.seed(1)\n\n\n\n\nCode\ndata <- tibble(x = seq(from = 0, to = 6, by = .025)) %>%\n  mutate(y = sin(2*x) + x -.1*x^2 + 2 + rnorm(length(x), sd = .3))\n\ng_template <- ggplot(data, aes(x = x, y = y)) +\n  geom_point() +\n  geom_vline(xintercept = c(0, 6), linetype = \"dashed\", color = \"red\") +\n  theme_bw()\n\n\ng_template + \n  geom_smooth(method = lm, formula = y ~ bs(x, degree = 1, knots = c(1, 2.5, 4, 5.7))) +\n  geom_vline(xintercept = c(1, 2.5, 4, 5.7), linetype = \"dashed\") +\n  ggtitle(\"Linear spline (4 knots)\") +\n  g_template + geom_smooth(method = lm, formula = y ~ bs(x, degree = 2, knots = c(1, 2.5, 4, 5.7))) +\n  geom_vline(xintercept = c(1, 2.5, 4, 5.7), linetype = \"dashed\") +\n  ggtitle(\"Quadratic spline (4 knots)\") +\n  g_template + geom_smooth(method = lm, formula = y ~ bs(x, degree = 3, knots = c(1, 2.5, 4, 5.7))) +\n  geom_vline(xintercept = c(1, 2.5, 4, 5.7), linetype = \"dashed\") +\n  ggtitle(\"Cubic spline (4 knots)\")\n\n\n\n\n\nCode\ng_template + \n  geom_smooth(method = lm, formula = y ~ bs(x, degree = 3, knots = c(3))) +\n  geom_vline(xintercept = c(3), linetype = \"dashed\") +\n  ggtitle(\"Cubic spline (1 knots)\") +\n  g_template + geom_smooth(method = lm, formula = y ~ bs(x, degree = 3, knots = c(1, 2.5, 4, 5.7))) +\n  geom_vline(xintercept = c(1, 2.5, 4, 5.7), linetype = \"dashed\") +\n  ggtitle(\"Cubic spline (4 knots)\") +\n  g_template + geom_smooth(method = lm, formula = y ~ bs(x, degree = 3, knots = seq(from = 0.1, to = 5.9, by = .2))) +\n  geom_vline(xintercept = seq(from = 0.1, to = 5.9, by = .2), linetype = \"dashed\") +\n  ggtitle(\"Cubic spline (30 knots)\")\n\n\n\n\n\nExample of splines implementations in regression models :\n\nLinear regression\nLogistic regression\nCox proportional-hazards model\nLinear mixed model"
+  },
+  {
+    "objectID": "explanatory variables/spline_linear.html",
+    "href": "explanatory variables/spline_linear.html",
+    "title": "Spline in a Linear regression model",
+    "section": "",
+    "text": "Code\nlibrary(dplyr)\nlibrary(ggplot2)\nlibrary(broom)\nlibrary(mlbench)\nlibrary(rms)\nlibrary(emmeans)\nlibrary(ggeffects)"
+  },
+  {
+    "objectID": "explanatory variables/spline_linear.html#modelise-age-as-continous-variable",
+    "href": "explanatory variables/spline_linear.html#modelise-age-as-continous-variable",
+    "title": "Spline in a Linear regression model",
+    "section": "Modelise age as continous variable",
+    "text": "Modelise age as continous variable\n\n\nCode\nlin_reg <- lm(glucose ~ age, data = PimaIndiansDiabetes2)\n\n# Summarize the model\nsummary(lin_reg)\n\n\n\nCall:\nlm(formula = glucose ~ age, data = PimaIndiansDiabetes2)\n\nResiduals:\n    Min      1Q  Median      3Q     Max \n-88.058 -21.310  -3.727  17.615  85.123 \n\nCoefficients:\n            Estimate Std. Error t value Pr(>|t|)    \n(Intercept) 98.63245    3.19767  30.845  < 2e-16 ***\nage          0.69292    0.09061   7.647 6.21e-14 ***\n---\nSignif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\n\nResidual standard error: 29.45 on 761 degrees of freedom\nMultiple R-squared:  0.07136,   Adjusted R-squared:  0.07014 \nF-statistic: 58.48 on 1 and 761 DF,  p-value: 6.208e-14\n\n\n\nResiduals\nplot residuals vs x\n\n\nCode\nlin_reg.pred <- augment(lin_reg)\n  \nggplot(lin_reg.pred, aes(x=age, y=.resid)) +\n  geom_hline(yintercept=0, color = \"red\", linetype = \"dashed\") +\n  geom_point(alpha = 0.2) +\n  stat_smooth(method = \"loess\", formula = y ~ x, alpha = 0.17) + \n  theme_bw()+\n  theme(legend.text = element_text(size = 25),\n        text = element_text(size=25)) +\n  labs(x = \"Age\",\n       y = \"Raw residuals\") + \n  annotate(\"rect\", \n           xmin = quantile(lin_reg.pred$age,0.025),\n           xmax = quantile(lin_reg.pred$age,0.975),\n           ymin = -Inf, ymax = Inf, alpha = 0.2, fill = \"#99CCCC\")"
+  },
+  {
+    "objectID": "explanatory variables/spline_linear.html#splines",
+    "href": "explanatory variables/spline_linear.html#splines",
+    "title": "Spline in a Linear regression model",
+    "section": "Splines",
+    "text": "Splines\n\n\nCode\nlin_reg_spl <- lm(glucose ~ rcs(age), data = PimaIndiansDiabetes2)\n\nanova(lin_reg, lin_reg_spl, test = \"LRT\")\n\n\nAnalysis of Variance Table\n\nModel 1: glucose ~ age\nModel 2: glucose ~ rcs(age)\n  Res.Df    RSS Df Sum of Sq Pr(>Chi)\n1    761 659805                      \n2    758 654730  3    5075.5   0.1178\n\n\nThe model with splines tends to fit better\n\n\nCode\nAIC(lin_reg, lin_reg_spl)\n\n\n            df      AIC\nlin_reg      3 7331.043\nlin_reg_spl  6 7331.151\n\n\n\n\nCode\nanova(lin_reg_spl)\n\n\nAnalysis of Variance Table\n\nResponse: glucose\n           Df Sum Sq Mean Sq F value    Pr(>F)    \nrcs(age)    4  55778 13944.6  16.144 1.073e-12 ***\nResiduals 758 654730   863.8                      \n---\nSignif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\n\n\n\n\nCode\nsummary(lin_reg_spl)\n\n\n\nCall:\nlm(formula = glucose ~ rcs(age), data = PimaIndiansDiabetes2)\n\nResiduals:\n    Min      1Q  Median      3Q     Max \n-84.835 -21.164  -4.087  18.592  87.798 \n\nCoefficients:\n               Estimate Std. Error t value Pr(>|t|)   \n(Intercept)     97.0744    34.8681   2.784   0.0055 **\nrcs(age)age      0.6411     1.5441   0.415   0.6781   \nrcs(age)age'    33.8231    48.3944   0.699   0.4848   \nrcs(age)age''  -69.2920    86.5649  -0.800   0.4237   \nrcs(age)age'''  44.1343    44.2471   0.997   0.3189   \n---\nSignif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\n\nResidual standard error: 29.39 on 758 degrees of freedom\nMultiple R-squared:  0.0785,    Adjusted R-squared:  0.07364 \nF-statistic: 16.14 on 4 and 758 DF,  p-value: 1.073e-12\n\n\n😭"
+  },
+  {
+    "objectID": "explanatory variables/spline_linear.html#compare-predictions",
+    "href": "explanatory variables/spline_linear.html#compare-predictions",
+    "title": "Spline in a Linear regression model",
+    "section": "Compare predictions",
+    "text": "Compare predictions\n\n\nCode\nlin_reg_spl.pred <- predict(lin_reg_spl, type = \"response\", interval = \"confidence\")\n\nggplot(lin_reg.pred, aes(x = age)) +\n  stat_smooth(aes(y = glucose, color = \"LOESS\"), method = \"loess\", formula = y ~ x, se = FALSE,) + \n  geom_line(aes(y = .fitted, color = \"Linear regression\"), linewidth = 1) +\n  geom_line(aes(y = lin_reg_spl.pred[,c(\"fit\")], color = \"Linear regression with spline\"), linewidth = 1) +\n  scale_color_manual(values=c(\"LOESS\" = \"#CC3333\", \n                              \"Linear regression\" = \"cyan4\", \n                              \"Linear regression with spline\" = \"goldenrod2\")) +\n  labs(x = \"Age\", y = \"Glucose\", color = \"\") +\n  theme_bw() +\n  theme(legend.title = element_text(size = 15, face = 'bold'),\n        legend.text = element_text(size = 15),\n        text = element_text(size=15),legend.position=\"bottom\")\n\n\n\n\n\n\n\nCode\n#### Visualization\n\nggemmeans(lin_reg, terms = \"age\") %>%\n  plot(add.data = F)\n\n\n\n\n\nCode\nggemmeans(lin_reg_spl, terms = \"age\") %>%\n  plot(add.data = F)"
+  },
+  {
+    "objectID": "explanatory variables/spline_linear.html#contrast",
+    "href": "explanatory variables/spline_linear.html#contrast",
+    "title": "Spline in a Linear regression model",
+    "section": "Contrast",
+    "text": "Contrast\nWe compare to age 30.\n\n\nCode\nage_range <- with(PimaIndiansDiabetes2, min(age):max(age))\nref <- 30\n\nlin_reg.emm <- emmeans(lin_reg, ~ age, at = list(age = age_range), type = \"response\")\n\nlin_reg.ctrs <- emmeans::contrast(lin_reg.emm, \"trt.vs.ctrl\", ref = paste0(\"age\", ref), \n                                  infer = T,  adjust = \"none\")\n\nlin_reg.ctrs %>%\n  as.data.frame() %>%\n  bind_cols(\"age\" = age_range[age_range != ref]) %>% \n  ggplot(., aes(x=age, y=estimate)) +\n  geom_line() +\n  geom_ribbon(aes(ymin=lower.CL, ymax=upper.CL), alpha=0.15, linetype=0) +\n  geom_hline(yintercept=0, color = \"red\") +\n  labs(x = \"age\", y = \"Glucose (Difference)\") +\n  theme_bw() +\n  theme(legend.title = element_text(size = 15, face = 'bold'),\n        legend.text = element_text(size = 15),\n        text = element_text(size=15),legend.position=\"bottom\")\n\n\n\n\n\n\n\nCode\nlin_reg_spl.emm <- emmeans(lin_reg_spl, ~ age, at = list(age = age_range), type = \"response\")\n\nlin_reg_spl.ctrs <- emmeans::contrast(lin_reg_spl.emm, \"trt.vs.ctrl\", ref = paste0(\"age\", ref), \n                                      infer = T,  adjust = \"none\")\n  \nlin_reg_spl.ctrs %>%\n  as.data.frame() %>%\n  bind_cols(\"age\" = age_range[age_range != ref]) %>% \n  ggplot(., aes(x=age, y=estimate)) +\n  geom_line() +\n  geom_ribbon(aes(ymin=lower.CL, ymax=upper.CL), alpha=0.15, linetype=0) +\n  geom_hline(yintercept=0, color = \"red\") +\n  labs(x = \"age\", y = \"Glucose (Difference)\") +\n  theme_bw() +\n  theme(legend.title = element_text(size = 15, face = 'bold'),\n        legend.text = element_text(size = 15),\n        text = element_text(size=15),legend.position=\"bottom\")"
+  },
+  {
+    "objectID": "explanatory variables/spline_logistic.html",
+    "href": "explanatory variables/spline_logistic.html",
+    "title": "Spline in a Logistic regression model",
+    "section": "",
+    "text": "Code\nlibrary(dplyr)\nlibrary(ggplot2)\nlibrary(broom)\nlibrary(mlbench)\nlibrary(rms)\nlibrary(emmeans)\nlibrary(ggeffects)"
+  },
+  {
+    "objectID": "explanatory variables/spline_logistic.html#modelise-age-as-continous-variable",
+    "href": "explanatory variables/spline_logistic.html#modelise-age-as-continous-variable",
+    "title": "Spline in a Logistic regression model",
+    "section": "Modelise age as continous variable",
+    "text": "Modelise age as continous variable\n\n\nCode\nlog_reg <- glm(diabetes ~ age, data = PimaIndiansDiabetes2, family = binomial)\n\n# Summarize the model\nsummary(log_reg)\n\n\n\nCall:\nglm(formula = diabetes ~ age, family = binomial, data = PimaIndiansDiabetes2)\n\nDeviance Residuals: \n    Min       1Q   Median       3Q      Max  \n-1.7809  -0.8512  -0.7505   1.2811   1.6950  \n\nCoefficients:\n             Estimate Std. Error z value Pr(>|z|)    \n(Intercept) -2.047511   0.238847  -8.572  < 2e-16 ***\nage          0.042026   0.006587   6.380 1.77e-10 ***\n---\nSignif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\n\n(Dispersion parameter for binomial family taken to be 1)\n\n    Null deviance: 993.48  on 767  degrees of freedom\nResidual deviance: 950.72  on 766  degrees of freedom\nAIC: 954.72\n\nNumber of Fisher Scoring iterations: 4\n\n\n\nResiduals\nplot residuals vs x\n\n\nCode\nlog_reg.pred <- augment(log_reg)\n  \nggplot(log_reg.pred, aes(x=age, y=.resid)) +\n  geom_hline(yintercept=0, color = \"red\", linetype = \"dashed\") +\n  geom_point(alpha = 0.2) +\n  stat_smooth(method = \"loess\", formula = y ~ x, alpha = 0.17) + \n  theme_bw()+\n  theme(legend.text = element_text(size = 25),\n        text = element_text(size=25)) +\n  labs(x = \"Age\",\n       y = \"Raw residuals\") + \n  annotate(\"rect\", \n           xmin = quantile(log_reg.pred$age,0.025),\n           xmax = quantile(log_reg.pred$age,0.975),\n           ymin = -Inf, ymax = Inf, alpha = 0.2, fill = \"#99CCCC\")"
+  },
+  {
+    "objectID": "explanatory variables/spline_logistic.html#splines",
+    "href": "explanatory variables/spline_logistic.html#splines",
+    "title": "Spline in a Logistic regression model",
+    "section": "Splines",
+    "text": "Splines\n\n\nCode\nlog_reg_spl <- glm(diabetes ~ rcs(age), data = PimaIndiansDiabetes2, family = binomial)\n\nanova(log_reg, log_reg_spl, test = \"LRT\")\n\n\nAnalysis of Deviance Table\n\nModel 1: diabetes ~ age\nModel 2: diabetes ~ rcs(age)\n  Resid. Df Resid. Dev Df Deviance  Pr(>Chi)    \n1       766     950.72                          \n2       763     898.97  3   51.748 3.389e-11 ***\n---\nSignif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\n\n\nThe model with splines tends to fit better\n\n\nCode\nAIC(log_reg, log_reg_spl)\n\n\n            df      AIC\nlog_reg      2 954.7203\nlog_reg_spl  5 908.9722\n\n\n\n\nCode\nanova(log_reg_spl)\n\n\nAnalysis of Deviance Table\n\nModel: binomial, link: logit\n\nResponse: diabetes\n\nTerms added sequentially (first to last)\n\n         Df Deviance Resid. Df Resid. Dev\nNULL                       767     993.48\nrcs(age)  4   94.512       763     898.97\n\n\n\n\nCode\nsummary(log_reg_spl)\n\n\n\nCall:\nglm(formula = diabetes ~ rcs(age), family = binomial, data = PimaIndiansDiabetes2)\n\nDeviance Residuals: \n    Min       1Q   Median       3Q      Max  \n-1.3061  -0.9169  -0.5292   1.1064   2.1482  \n\nCoefficients:\n               Estimate Std. Error z value Pr(>|z|)   \n(Intercept)     -8.7178     3.2530  -2.680  0.00736 **\nrcs(age)age      0.3102     0.1419   2.186  0.02880 * \nrcs(age)age'    -3.7094     4.1087  -0.903  0.36661   \nrcs(age)age''    5.7888     7.2392   0.800  0.42391   \nrcs(age)age'''  -2.2401     3.5722  -0.627  0.53060   \n---\nSignif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\n\n(Dispersion parameter for binomial family taken to be 1)\n\n    Null deviance: 993.48  on 767  degrees of freedom\nResidual deviance: 898.97  on 763  degrees of freedom\nAIC: 908.97\n\nNumber of Fisher Scoring iterations: 4\n\n\n😭"
+  },
+  {
+    "objectID": "explanatory variables/spline_logistic.html#compare-predictions",
+    "href": "explanatory variables/spline_logistic.html#compare-predictions",
+    "title": "Spline in a Logistic regression model",
+    "section": "Compare predictions",
+    "text": "Compare predictions\n\n\nCode\nlog_reg_spl.pred <- predict(log_reg_spl, type = \"response\")\n\nggplot(log_reg.pred, aes(x = age)) +\n  geom_line(aes(y = .fitted, color = \"Logistic regression\"), linewidth = 1) +\n  geom_line(aes(y = log_reg_spl.pred, color = \"Logistic regression with spline\"), linewidth = 1) +\n  scale_color_manual(values=c(\"Logistic regression\" = \"cyan4\",\n                              \"Logistic regression with spline\" = \"goldenrod2\")) +\n  labs(x = \"Age\", y = \"Probability of diabete\", color = \"\") +\n  theme_bw() +\n  theme(legend.title = element_text(size = 15, face = 'bold'),\n        legend.text = element_text(size = 15),\n        text = element_text(size=15),legend.position=\"bottom\")\n\n\n\n\n\n\n\nCode\n#### Visualization\n\nggemmeans(log_reg, terms = \"age\") %>%\n  plot(add.data = F)\n\n\nData were 'prettified'. Consider using `terms=\"age [all]\"` to get smooth\n  plots.\n\n\n\n\n\nCode\nggemmeans(log_reg_spl, terms = \"age\") %>%\n  plot(add.data = F)"
+  },
+  {
+    "objectID": "explanatory variables/spline_logistic.html#contrast",
+    "href": "explanatory variables/spline_logistic.html#contrast",
+    "title": "Spline in a Logistic regression model",
+    "section": "Contrast",
+    "text": "Contrast\nWe compare to age 45.\n\n\nCode\nage_range <- with(PimaIndiansDiabetes2, seq(min(age),max(age), by = .2))\nref <- 45\n\nlog_reg.emm <- emmeans(log_reg, ~ age, at = list(age = age_range), type = \"response\")\n\nlog_reg.ctrs <- emmeans::contrast(log_reg.emm, \"trt.vs.ctrl\", ref = paste0(\"age\", ref), \n                                  infer = T,  adjust = \"none\")\n\nlog_reg.ctrs %>%\n  as.data.frame() %>%\n  bind_cols(\"age\" = age_range[age_range != ref]) %>% \n  ggplot(., aes(x=age, y=odds.ratio)) +\n  geom_line() +\n  geom_ribbon(aes(ymin=asymp.LCL, ymax=asymp.UCL), alpha=0.15, linetype=0) +\n  geom_hline(yintercept=1, color = \"red\") +\n  labs(x = \"age\", y = \"Odds Ratio\") +\n  theme_bw() +\n  theme(legend.title = element_text(size = 15, face = 'bold'),\n        legend.text = element_text(size = 15),\n        text = element_text(size=15),legend.position=\"bottom\")\n\n\n\n\n\n\n\nCode\nlog_reg_spl.emm <- emmeans(log_reg_spl, ~ age, at = list(age = age_range), type = \"response\")\n\nlog_reg_spl.ctrs <- emmeans::contrast(log_reg_spl.emm, \"trt.vs.ctrl\", ref = paste0(\"age\", ref), \n                                      infer = T,  adjust = \"none\")\n  \nlog_reg_spl.ctrs %>%\n  as.data.frame() %>%\n  bind_cols(\"age\" = age_range[age_range != ref]) %>% \n  ggplot(., aes(x=age, y=odds.ratio)) +\n  geom_line() +\n  geom_ribbon(aes(ymin=asymp.LCL, ymax=asymp.UCL), alpha=0.15, linetype=0) +\n  geom_hline(yintercept=1, color = \"red\") +\n  labs(x = \"age\", y = \"Odds Ratio\") +\n  theme_bw() +\n  theme(legend.title = element_text(size = 15, face = 'bold'),\n        legend.text = element_text(size = 15),\n        text = element_text(size=15),legend.position=\"bottom\")"
+  },
+  {
+    "objectID": "explanatory variables/spline_cox.html",
+    "href": "explanatory variables/spline_cox.html",
+    "title": "Spline in a Cox regression model",
+    "section": "",
+    "text": "Code\nlibrary(dplyr)\nlibrary(ggplot2)\nlibrary(survival)\nlibrary(survminer)\nlibrary(rms)\nlibrary(emmeans)\n\n# see https://cran.r-project.org/web/packages/survival/vignettes/splines.pdf"
+  },
+  {
+    "objectID": "explanatory variables/spline_cox.html#modelise-age-as-continous-variable",
+    "href": "explanatory variables/spline_cox.html#modelise-age-as-continous-variable",
+    "title": "Spline in a Cox regression model",
+    "section": "Modelise age as continous variable",
+    "text": "Modelise age as continous variable\n\n\nCode\nmcox <- coxph(Surv(rfstime, status) ~ meno + age, data=gbsg)\n\n# Summarize the model\nsummary(mcox, scale=365.25)\n\n\nCall:\ncoxph(formula = Surv(rfstime, status) ~ meno + age, data = gbsg)\n\n  n= 686, number of events= 299 \n\n           coef  exp(coef)   se(coef)      z Pr(>|z|)  \nmeno  1.107e+02  1.143e+48  6.519e+01  1.698   0.0896 .\nage  -5.833e+00  2.928e-03  3.268e+00 -1.785   0.0742 .\n---\nSignif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\n\n     exp(coef) exp(-coef) lower .95  upper .95\nmeno 1.143e+48  8.748e-49 3.717e-08 3.515e+103\nage  2.928e-03  3.415e+02 4.841e-06  1.771e+00\n\nConcordance= 0.542  (se = 0.018 )\nLikelihood ratio test= 3.45  on 2 df,   p=0.2\nWald test            = 3.48  on 2 df,   p=0.2\nScore (logrank) test = 3.49  on 2 df,   p=0.2\n\n\n\nResiduals\n\n\nCode\n# survminer::ggcoxdiagnostics(mcox, type = \"martingale\")\n\nmartResb <- residuals(mcox, process = \"Event\")\n\nggplot(gbsg, aes(x=age, y=martResb)) +\n  geom_point(alpha = 0.2) +\n  stat_smooth(method = \"loess\", formula = y ~ x, alpha = 0.17) + \n  geom_hline(yintercept=0, color = \"red\") + \n  annotate(\"rect\", xmin = quantile(gbsg$age,0.025),\n           xmax = quantile(gbsg$age,0.975),\n           ymin = -Inf, ymax = Inf, alpha = 0.2, fill = \"#99CCCC\") +\n  labs(x = \"Age\",\n       y = \"Martingale residuals\") + \n  theme_bw()"
+  },
+  {
+    "objectID": "explanatory variables/spline_cox.html#splines",
+    "href": "explanatory variables/spline_cox.html#splines",
+    "title": "Spline in a Cox regression model",
+    "section": "Splines",
+    "text": "Splines\n\n\nCode\nmcox_spl <- coxph(Surv(rfstime, status) ~ meno + rcs(age), data=gbsg)\n\nanova(mcox, mcox_spl, test = \"LRT\")\n\n\nAnalysis of Deviance Table\n Cox model: response is  Surv(rfstime, status)\n Model 1: ~ meno + age\n Model 2: ~ meno + rcs(age)\n   loglik  Chisq Df Pr(>|Chi|)    \n1 -1786.4                         \n2 -1776.6 19.559  3  0.0002095 ***\n---\nSignif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\n\n\nThe model with splines tends to fit better\n\n\nCode\nAIC(mcox, mcox_spl)\n\n\n         df      AIC\nmcox      2 3576.761\nmcox_spl  5 3563.201\n\n\n\n\nCode\nanova(mcox_spl)\n\n\nAnalysis of Deviance Table\n Cox model: response is Surv(rfstime, status)\nTerms added sequentially (first to last)\n\n          loglik   Chisq Df Pr(>|Chi|)    \nNULL     -1788.1                          \nmeno     -1788.0  0.2819  1  0.5954627    \nrcs(age) -1776.6 22.7262  4  0.0001436 ***\n---\nSignif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\n\n\n\n\nCode\nsummary(mcox_spl, scale=365.25)\n\n\nCall:\ncoxph(formula = Surv(rfstime, status) ~ meno + rcs(age), data = gbsg)\n\n  n= 686, number of events= 299 \n\n                      coef   exp(coef)    se(coef)      z Pr(>|z|)    \nmeno            -2.911e+00   5.442e-02   8.230e+01 -0.035  0.97179    \nrcs(age)age     -4.026e+01   3.263e-18   8.286e+00 -4.859 1.18e-06 ***\nrcs(age)age'     1.416e+02   3.230e+61   4.601e+01  3.078  0.00208 ** \nrcs(age)age''   -5.682e+02  1.720e-247   2.648e+02 -2.145  0.03191 *  \nrcs(age)age'''   5.473e+02  4.781e+237   4.111e+02  1.331  0.18316    \n---\nSignif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\n\n                exp(coef) exp(-coef)  lower .95  upper .95\nmeno            5.442e-02  1.837e+01  4.789e-72  6.186e+68\nrcs(age)age     3.263e-18  3.065e+17  2.889e-25  3.686e-11\nrcs(age)age'    3.230e+61  3.096e-62  2.227e+22 4.685e+100\nrcs(age)age''  1.720e-247 5.815e+246  0.000e+00  4.582e-22\nrcs(age)age''' 4.781e+237 2.092e-238 5.109e-113        Inf\n\nConcordance= 0.563  (se = 0.019 )\nLikelihood ratio test= 23.01  on 5 df,   p=3e-04\nWald test            = 27.22  on 5 df,   p=5e-05\nScore (logrank) test = 27.56  on 5 df,   p=4e-05\n\n\n😭"
+  },
+  {
+    "objectID": "explanatory variables/spline_cox.html#compare-predictions",
+    "href": "explanatory variables/spline_cox.html#compare-predictions",
+    "title": "Spline in a Cox regression model",
+    "section": "Compare predictions",
+    "text": "Compare predictions\nWe predict survival probability at 3-years according to age\n\n\nCode\nage_range <- seq(24, 90, by = 1)\nt <- 3\n\nmcox_pred <- summary(survfit(mcox, newdata = data.frame(age = age_range, meno = 1)), \n                     times = t*365.25, scale=365.25)\n\nmcox_spl_pred <- summary(survfit(mcox_spl, newdata = data.frame(age = age_range, meno = 1)), \n                     times = t*365.25, scale=365.25)\n\nmcox_pred_all <- bind_cols(age = rep(age_range, 2),\n                           Model = rep(c(\"Cox\", \"Cox_spline\"), each = length(age_range)),\n                           Time = t,\n                           Surv_Prob = c(mcox_pred$surv, mcox_spl_pred$surv), \n                           Lower = c(mcox_pred$lower, mcox_spl_pred$lower), \n                           Upper = c(mcox_pred$upper, mcox_spl_pred$upper))\n\n\nggplot(mcox_pred_all, aes(x = age, y = Surv_Prob)) +\n  geom_line(aes(color = Model), linewidth = 1) +\n  geom_ribbon(aes(ymin=Lower, ymax=Upper, fill = Model), alpha=.2) +\n  scale_discrete_manual(c(\"color\", \"fill\"),\n                        values=c(\"Cox\" = \"cyan4\", \"Cox_spline\" = \"goldenrod2\")) +\n  labs(x = \"Age\", y = \"Survival at 3 years\", color = \"\", fill = \"\") +\n  theme_bw() +\n  theme(legend.title = element_text(size = 15, face = 'bold'),\n        legend.text = element_text(size = 15),\n        text = element_text(size=15), legend.position=\"bottom\")\n\n\n\n\n\n\n\nCode\n# #### Visualization\n# library(ggeffects)\n# ggpredict(mcox_spl, terms = \"age\", type = \"survival\") %>%\n#   plot()"
+  },
+  {
+    "objectID": "explanatory variables/spline_cox.html#contrast",
+    "href": "explanatory variables/spline_cox.html#contrast",
+    "title": "Spline in a Cox regression model",
+    "section": "Contrast",
+    "text": "Contrast\nWe estimate the HR compare to age 45.\n\n\nCode\nref <- 45\n\nmcox_spl_emm <- emmeans(mcox_spl, ~ age, at = list(age = age_range), type = \"response\")\n\nmcox_spl_ctrs <- emmeans::contrast(mcox_spl_emm, \"trt.vs.ctrl\", ref = paste0(\"age\", ref), \n                                   infer = T,  adjust = \"none\")\n  \nmcox_spl_ctrs %>%\n  as.data.frame() %>%\n  bind_cols(\"age\" = age_range[age_range != ref]) %>% \n  ggplot(., aes(x=age, y=ratio)) +\n  geom_line() +\n  geom_ribbon(aes(ymin=asymp.LCL, ymax=asymp.UCL), alpha=0.15, linetype=0) +\n  geom_hline(yintercept=1, color = \"red\") +\n  labs(x = \"age\", y = \"Hazard ratio\") +\n  theme_bw() +\n  theme(legend.title = element_text(size = 15, face = 'bold'),\n        legend.text = element_text(size = 15),\n        text = element_text(size=15),legend.position=\"bottom\")"
+  }
+]

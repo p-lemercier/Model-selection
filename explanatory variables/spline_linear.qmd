@@ -1,0 +1,172 @@
+---
+title: "Spline in a Linear regression model"
+---
+
+# Exemple in diabetes
+
+```{r}
+#| message: false
+#| warning: false
+
+library(dplyr)
+library(ggplot2)
+library(broom)
+library(mlbench)
+library(rms)
+library(emmeans)
+library(ggeffects)
+
+```
+
+# The Pima Indians Diabetes Database dataset
+
+```{r}
+data("PimaIndiansDiabetes2", package = "mlbench")
+
+PimaIndiansDiabetes2 <- PimaIndiansDiabetes2 %>%
+  filter(!is.na(glucose))
+
+str(PimaIndiansDiabetes2)
+```
+
+# Scatterplot
+
+```{r}
+ggplot(PimaIndiansDiabetes2, aes(age, glucose)) +
+  geom_point() +
+  stat_smooth(method = "loess", formula = y ~ x, alpha = 0.17) +
+  theme_bw()
+```
+
+
+## Modelise age as continous variable
+
+```{r}
+lin_reg <- lm(glucose ~ age, data = PimaIndiansDiabetes2)
+
+# Summarize the model
+summary(lin_reg)
+```
+
+### Residuals
+
+plot residuals vs x 
+
+```{r}
+lin_reg.pred <- augment(lin_reg)
+  
+ggplot(lin_reg.pred, aes(x=age, y=.resid)) +
+  geom_hline(yintercept=0, color = "red", linetype = "dashed") +
+  geom_point(alpha = 0.2) +
+  stat_smooth(method = "loess", formula = y ~ x, alpha = 0.17) + 
+  theme_bw()+
+  theme(legend.text = element_text(size = 25),
+        text = element_text(size=25)) +
+  labs(x = "Age",
+       y = "Raw residuals") + 
+  annotate("rect", 
+           xmin = quantile(lin_reg.pred$age,0.025),
+           xmax = quantile(lin_reg.pred$age,0.975),
+           ymin = -Inf, ymax = Inf, alpha = 0.2, fill = "#99CCCC")
+```
+
+## Splines
+
+```{r}
+lin_reg_spl <- lm(glucose ~ rcs(age), data = PimaIndiansDiabetes2)
+
+anova(lin_reg, lin_reg_spl, test = "LRT")
+```
+
+The model with splines tends to fit better
+
+```{r}
+AIC(lin_reg, lin_reg_spl)
+```
+
+```{r}
+anova(lin_reg_spl)
+```
+
+```{r}
+summary(lin_reg_spl)
+```
+
+😭
+
+## Compare predictions
+
+```{r}
+lin_reg_spl.pred <- predict(lin_reg_spl, type = "response", interval = "confidence")
+
+ggplot(lin_reg.pred, aes(x = age)) +
+  stat_smooth(aes(y = glucose, color = "LOESS"), method = "loess", formula = y ~ x, se = FALSE,) + 
+  geom_line(aes(y = .fitted, color = "Linear regression"), linewidth = 1) +
+  geom_line(aes(y = lin_reg_spl.pred[,c("fit")], color = "Linear regression with spline"), linewidth = 1) +
+  scale_color_manual(values=c("LOESS" = "#CC3333", 
+                              "Linear regression" = "cyan4", 
+                              "Linear regression with spline" = "goldenrod2")) +
+  labs(x = "Age", y = "Glucose", color = "") +
+  theme_bw() +
+  theme(legend.title = element_text(size = 15, face = 'bold'),
+        legend.text = element_text(size = 15),
+        text = element_text(size=15),legend.position="bottom")
+```
+
+```{r}
+#### Visualization
+
+ggemmeans(lin_reg, terms = "age") %>%
+  plot(add.data = F)
+
+ggemmeans(lin_reg_spl, terms = "age") %>%
+  plot(add.data = F)
+```
+
+## Contrast
+
+We compare to age 30.
+
+```{r}
+age_range <- with(PimaIndiansDiabetes2, min(age):max(age))
+ref <- 30
+
+lin_reg.emm <- emmeans(lin_reg, ~ age, at = list(age = age_range), type = "response")
+
+lin_reg.ctrs <- emmeans::contrast(lin_reg.emm, "trt.vs.ctrl", ref = paste0("age", ref), 
+                                  infer = T,  adjust = "none")
+
+lin_reg.ctrs %>%
+  as.data.frame() %>%
+  bind_cols("age" = age_range[age_range != ref]) %>% 
+  ggplot(., aes(x=age, y=estimate)) +
+  geom_line() +
+  geom_ribbon(aes(ymin=lower.CL, ymax=upper.CL), alpha=0.15, linetype=0) +
+  geom_hline(yintercept=0, color = "red") +
+  labs(x = "age", y = "Glucose (Difference)") +
+  theme_bw() +
+  theme(legend.title = element_text(size = 15, face = 'bold'),
+        legend.text = element_text(size = 15),
+        text = element_text(size=15),legend.position="bottom")
+```
+
+```{r}
+lin_reg_spl.emm <- emmeans(lin_reg_spl, ~ age, at = list(age = age_range), type = "response")
+
+lin_reg_spl.ctrs <- emmeans::contrast(lin_reg_spl.emm, "trt.vs.ctrl", ref = paste0("age", ref), 
+                                      infer = T,  adjust = "none")
+  
+lin_reg_spl.ctrs %>%
+  as.data.frame() %>%
+  bind_cols("age" = age_range[age_range != ref]) %>% 
+  ggplot(., aes(x=age, y=estimate)) +
+  geom_line() +
+  geom_ribbon(aes(ymin=lower.CL, ymax=upper.CL), alpha=0.15, linetype=0) +
+  geom_hline(yintercept=0, color = "red") +
+  labs(x = "age", y = "Glucose (Difference)") +
+  theme_bw() +
+  theme(legend.title = element_text(size = 15, face = 'bold'),
+        legend.text = element_text(size = 15),
+        text = element_text(size=15),legend.position="bottom")
+```
+

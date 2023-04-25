@@ -1,0 +1,73 @@
+---
+title: "Handling Continuous Variables"
+bibliography: references.bib
+---
+
+When building a regression model, several strategies exist for continuous variables:
+
+-   Categorizing the variable into two or more modalities
+-   Use the variable as it is
+-   Modeling the functional form
+
+# Dichotomization
+
+See [@Royston2006].
+
+# Functional form
+
+## Variable Transformation
+
+Polynomials
+
+Fractional polynomials
+
+## Spline
+
+```{r}
+library(splines)
+library(dplyr)
+library(ggplot2)
+library(patchwork)
+
+set.seed(1)
+```
+
+```{r}
+data <- tibble(x = seq(from = 0, to = 6, by = .025)) %>%
+  mutate(y = sin(2*x) + x -.1*x^2 + 2 + rnorm(length(x), sd = .3))
+
+g_template <- ggplot(data, aes(x = x, y = y)) +
+  geom_point() +
+  geom_vline(xintercept = c(0, 6), linetype = "dashed", color = "red") +
+  theme_bw()
+
+
+g_template + 
+  geom_smooth(method = lm, formula = y ~ bs(x, degree = 1, knots = c(1, 2.5, 4, 5.7))) +
+  geom_vline(xintercept = c(1, 2.5, 4, 5.7), linetype = "dashed") +
+  ggtitle("Linear spline (4 knots)") +
+  g_template + geom_smooth(method = lm, formula = y ~ bs(x, degree = 2, knots = c(1, 2.5, 4, 5.7))) +
+  geom_vline(xintercept = c(1, 2.5, 4, 5.7), linetype = "dashed") +
+  ggtitle("Quadratic spline (4 knots)") +
+  g_template + geom_smooth(method = lm, formula = y ~ bs(x, degree = 3, knots = c(1, 2.5, 4, 5.7))) +
+  geom_vline(xintercept = c(1, 2.5, 4, 5.7), linetype = "dashed") +
+  ggtitle("Cubic spline (4 knots)")
+
+g_template + 
+  geom_smooth(method = lm, formula = y ~ bs(x, degree = 3, knots = c(3))) +
+  geom_vline(xintercept = c(3), linetype = "dashed") +
+  ggtitle("Cubic spline (1 knots)") +
+  g_template + geom_smooth(method = lm, formula = y ~ bs(x, degree = 3, knots = c(1, 2.5, 4, 5.7))) +
+  geom_vline(xintercept = c(1, 2.5, 4, 5.7), linetype = "dashed") +
+  ggtitle("Cubic spline (4 knots)") +
+  g_template + geom_smooth(method = lm, formula = y ~ bs(x, degree = 3, knots = seq(from = 0.1, to = 5.9, by = .2))) +
+  geom_vline(xintercept = seq(from = 0.1, to = 5.9, by = .2), linetype = "dashed") +
+  ggtitle("Cubic spline (30 knots)")
+```
+
+Example of splines implementations in regression models :
+
+-   Linear regression
+-   Logistic regression
+-   Cox proportional-hazards model
+-   Linear mixed model
