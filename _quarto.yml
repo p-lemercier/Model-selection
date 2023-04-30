@@ -12,22 +12,22 @@ website:
       - icon: github
         menu:
           - text: Source Code
-            url:  https://code.com
+            url: https://github.com/p-lemercier/Model-selection
           - text: Report a Bug
-            url:  https://bugs.com
+            url: https://github.com/p-lemercier/Model-selection/issues
     contents:
       - href: index.qmd
         text: Introduction
       - section: "Explanatory Variables"
         contents:
-          - explanatory variables/introduction.qmd
+          - explanatory_variables/introduction.qmd
           - section: "Application of Restricted Cubic Splines"
             contents:
-              - href: explanatory variables/spline_linear.qmd
+              - href: explanatory_variables/spline_linear.qmd
                 text: Linear Regression
-              - href: explanatory variables/spline_logistic.qmd
+              - href: explanatory_variables/spline_logistic.qmd
                 text: Logistic Regression
-              - href: explanatory variables/spline_cox.qmd
+              - href: explanatory_variables/spline_cox.qmd
                 text: Cox Proportional Hazards Regression
       - about.qmd
 
