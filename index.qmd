@@ -4,4 +4,16 @@ title: "Introduction"
 
 # All models are wrong
 
-# Explanatory  and predictive models
+A well known statement, usually attributed to George Box, says: *"All models are wrong, but some are useful"*. So, how do you proceed to build a useful model?
+
+First, we must clearly define the goal of the model we want to construct and to make the distinction between an explanatory model and a predictive model.
+
+## Explanatory and predictive models
+
+In **predictive modeling**, the primary goal is predictive accuracy. Explaining why a variable improves prediction is not the focus.
+
+In contrast, **explanatory modeling** is interested in identifying variables that have a scientifically meaningful relationship with an outcome. We aim at testing the theoretical hypotheses i.e. checking for statistical significance. In addition, it is essential to inquire the theoretical meaningful of the observed relationships, to describe the model, and to evaluate effect sizes.
+
+## Prognostic factors
+
+

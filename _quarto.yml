@@ -36,7 +36,9 @@ format:
     theme:
       light: flatly
       dark: darkly
+    df-print: paged
     code-fold: true
+    code-copy: true
     toc: true
 
 editor: visual

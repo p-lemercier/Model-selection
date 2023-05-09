@@ -1,13 +1,16 @@
 ---
-title: "Spline in a Logistic regression model"
+title: "Spline in a Logistic Regression Model"
 ---
 
-# Exemple in diabetes
+We provide an illustration of the use of restricted cubic splines in the case of diabetes.
+
+# The Pima Indians Diabetes Database
 
 ```{r}
 #| message: false
 #| warning: false
 
+# Load libraries
 library(dplyr)
 library(ggplot2)
 library(broom)
@@ -16,127 +19,216 @@ library(rms)
 library(emmeans)
 library(ggeffects)
 
-```
-
-# The Pima Indians Diabetes Database dataset
-
-```{r}
 data("PimaIndiansDiabetes2", package = "mlbench")
 
-PimaIndiansDiabetes2 <- PimaIndiansDiabetes2
-
-PimaIndiansDiabetes2$diabetes <- relevel(factor(PimaIndiansDiabetes2$diabetes), ref = "neg")
-
-str(PimaIndiansDiabetes2)
+# We set neg as categories of reference
+PimaIndiansDiabetes2 <- PimaIndiansDiabetes2 %>%
+  mutate(diabetes = relevel(factor(diabetes), ref = "neg"))
 ```
 
-# Distribution
+For this example, we used the Pima Indians Diabetes Database from the `mlbench` library.
+
+The dataset consists of 9 demographic and clinical variables collected in women 21 years and older of [Pima Indian](https://en.wikipedia.org/wiki/Akimel_O%27odham) heritage. This population is known to have a high prevalence of type 2 diabetes.
+
+::: panel-tabset
+## Description
 
 ```{r}
-dt_means <- aggregate(x = PimaIndiansDiabetes2$age, by = list(PimaIndiansDiabetes2$diabetes), FUN = mean) %>%
+#| R.options:
+#|  knitr.kable.NA: ""
+
+summary(PimaIndiansDiabetes2) %>%
+  knitr::kable()
+```
+
+## Overview
+
+```{r}
+PimaIndiansDiabetes2
+```
+:::
+
+List of variables:
+
+-   pregnant : Number of times pregnant
+-   glucose : Plasma glucose concentration (glucose tolerance test)
+-   pressure : Diastolic blood pressure (mm Hg)
+-   triceps : Triceps skin fold thickness (mm)
+-   insulin : 2-Hour serum insulin (mu U/ml)
+-   mass : Body mass index (weight in kg/(height in m)^2^)
+-   pedigree : Diabetes pedigree function
+-   age : Age (years)
+-   diabetes : Test for type 2 diabetes (neg/pos)
+
+# Modelise age as continous variable
+
+First let's have a look at @fig-age-hist, showing the distribution of age in women with (pos) and without (neg) diabetes.
+
+```{r}
+#| label: fig-age-hist
+#| fig-cap: "Distribution of age according to diabetes status <br> The red squre represent the mean."
+#| fig-align: left
+
+dt_means <- aggregate(x = PimaIndiansDiabetes2$age, 
+                      by = list(PimaIndiansDiabetes2$diabetes), 
+                      FUN = mean) %>%
   as.data.frame() %>%
   rename(diabetes = "Group.1")
 
 ggplot(PimaIndiansDiabetes2, aes(x = age, fill = diabetes, color = diabetes)) + 
-  geom_histogram(aes(y=stat(width*density)), binwidth = 1) +
+  geom_histogram(aes(y=after_stat(width*density)), binwidth = 1) +
   geom_boxplot(aes(y = -.02), width = .02, fill = NA, show.legend = FALSE) +
   geom_point(data = dt_means, aes(x = x, y = -.02), shape = 18, colour = "darkred", size = 4) +
   facet_grid(diabetes ~ .) +
+  labs(x = "age", y = "density", color = "") +
   scale_y_continuous(labels = scales::percent) +
   theme_bw() + theme(legend.position="none")
 ```
 
+Now we construct a logistic regression model of the relationship between age and diabetes status.
 
-## Modelise age as continous variable
+## Model summary
 
 ```{r}
 log_reg <- glm(diabetes ~ age, data = PimaIndiansDiabetes2, family = binomial)
 
-# Summarize the model
 summary(log_reg)
 ```
 
-### Residuals
+We observe that the probability of diabetes increases significantly with age (OR = $e^{0.04} \approx$ 1.04, p-value \< 0.001).
 
-plot residuals vs x 
+## Residuals of the model
+
+@fig-log-res shows the residuals of the model vs age. We can see that the linearity assumption does not look satisfied.
 
 ```{r}
+#| label: fig-log-res
+#| fig-cap: "Residuals and age <br> The blue area represents the 2.5 and 97.5 percentiles of the observed age distribution."
+#| fig-align: left
+
 log_reg.pred <- augment(log_reg)
   
 ggplot(log_reg.pred, aes(x=age, y=.resid)) +
-  geom_hline(yintercept=0, color = "red", linetype = "dashed") +
-  geom_point(alpha = 0.2) +
-  stat_smooth(method = "loess", formula = y ~ x, alpha = 0.17) + 
-  theme_bw()+
-  theme(legend.text = element_text(size = 25),
-        text = element_text(size=25)) +
-  labs(x = "Age",
-       y = "Raw residuals") + 
+  geom_hline(yintercept = 0, color = "red", linetype = "dashed") +
+  geom_point(alpha = .2) +
+  stat_smooth(method = "loess", formula = y ~ x, alpha = .2) + 
+  labs(x = "Age", y = "Raw residuals") + 
   annotate("rect", 
-           xmin = quantile(log_reg.pred$age,0.025),
-           xmax = quantile(log_reg.pred$age,0.975),
-           ymin = -Inf, ymax = Inf, alpha = 0.2, fill = "#99CCCC")
+           xmin = quantile(log_reg.pred$age, .025),
+           xmax = quantile(log_reg.pred$age, .975),
+           ymin = -Inf, ymax = Inf, alpha = .2, fill = "#99CCCC") +
+  theme_bw()
 ```
 
-## Splines
+# Modelise age with splines
+
+The restricted cubic splines are computed with the `rcs` function from the `rms` library.
+
+We compare the following model using the likelihood-ratio test.
+
+1.  diabetes ~ age : model with age as continous
+
+2.  diabetes ~ rcs(age) : model with splines
 
 ```{r}
+#| R.options:
+#|  knitr.kable.NA: ""
+
 log_reg_spl <- glm(diabetes ~ rcs(age), data = PimaIndiansDiabetes2, family = binomial)
 
-anova(log_reg, log_reg_spl, test = "LRT")
+anova(log_reg, log_reg_spl, test = "LRT") %>%
+  knitr::kable(digits = 3, row.names = T)
 ```
 
-The model with splines tends to fit better
+Comparison of the two models shows that the model with splines fits significantly better.
+As suggested by the analysis of residuals (@fig-log-res), the relationship between probability of diabetes and age is not linear.
 
 ```{r}
+#| include: false
+
 AIC(log_reg, log_reg_spl)
 ```
 
 ```{r}
+#| include: false
+
 anova(log_reg_spl)
 ```
+
+Now let's have look at the summary of the model with splines.
+
+## Model summary
 
 ```{r}
 summary(log_reg_spl)
 ```
 
-😭
+We cannot interpret the model's coefficients. 😭
+We need to use graphic representations.
+
+# Vizualisation of the models
 
 ## Compare predictions
 
+@fig-pred show the predictions of the models.
+
 ```{r}
+#| label: fig-pred
+#| fig-cap: "Comparison of models predictions"
+#| fig-align: left
+
+log_reg.pred <- augment(log_reg, type.predict = "response")
+
 log_reg_spl.pred <- predict(log_reg_spl, type = "response")
 
 ggplot(log_reg.pred, aes(x = age)) +
+  geom_point(aes(y = ifelse(diabetes == "neg", 0, 1)), alpha = .2) +
   geom_line(aes(y = .fitted, color = "Logistic regression"), linewidth = 1) +
   geom_line(aes(y = log_reg_spl.pred, color = "Logistic regression with spline"), linewidth = 1) +
   scale_color_manual(values=c("Logistic regression" = "cyan4",
                               "Logistic regression with spline" = "goldenrod2")) +
-  labs(x = "Age", y = "Probability of diabete", color = "") +
-  theme_bw() +
-  theme(legend.title = element_text(size = 15, face = 'bold'),
-        legend.text = element_text(size = 15),
-        text = element_text(size=15),legend.position="bottom")
+  labs(x = "Age", y = "Probabilities of diabetes", color = "") +
+  scale_y_continuous(labels = scales::percent) +
+  theme_bw() + 
+  theme(legend.position="bottom")
 ```
 
+@fig-pred-ci show the predictions with confidence band of the models.
+
 ```{r}
-#### Visualization
+#| label: fig-pred-ci
+#| fig-cap: "Comparison of model predictions"
+#| fig-subcap: 
+#|   - "Linear regression"
+#|   - "Linear regression with spline"
+#| layout-ncol: 2
+#| fig-align: left
 
-ggemmeans(log_reg, terms = "age") %>%
-  plot(add.data = F)
+ggpredict(log_reg, terms = "age [all]") %>%
+  plot(add.data = T)
 
-ggemmeans(log_reg_spl, terms = "age") %>%
-  plot(add.data = F)
+ggpredict(log_reg_spl, terms = "age [all]") %>%
+  plot(add.data = T)
 ```
 
-## Contrast
+## Contrast analysis
 
-We compare to age 45.
+In @fig-ctrs, we compare the odds ratio of having diabetes with a reference age (e.g. 25).
 
 ```{r}
+#| label: fig-ctrs
+#| fig-cap: "Contrast analysis in both models"
+#| fig-subcap: 
+#|   - "Logistic regression"
+#|   - "Logistic regression with spline"
+#| layout-ncol: 2
+#| fig-align: left
+
+# Set up
 age_range <- with(PimaIndiansDiabetes2, seq(min(age),max(age), by = .2))
-ref <- 45
+ref <- 25
 
+# Logistic regression
 log_reg.emm <- emmeans(log_reg, ~ age, at = list(age = age_range), type = "response")
 
 log_reg.ctrs <- emmeans::contrast(log_reg.emm, "trt.vs.ctrl", ref = paste0("age", ref), 
@@ -146,17 +238,13 @@ log_reg.ctrs %>%
   as.data.frame() %>%
   bind_cols("age" = age_range[age_range != ref]) %>% 
   ggplot(., aes(x=age, y=odds.ratio)) +
+  geom_hline(yintercept = 1, color = "red") +
   geom_line() +
-  geom_ribbon(aes(ymin=asymp.LCL, ymax=asymp.UCL), alpha=0.15, linetype=0) +
-  geom_hline(yintercept=1, color = "red") +
+  geom_ribbon(aes(ymin=asymp.LCL, ymax=asymp.UCL), alpha = .2, linetype = 0) +
   labs(x = "age", y = "Odds Ratio") +
-  theme_bw() +
-  theme(legend.title = element_text(size = 15, face = 'bold'),
-        legend.text = element_text(size = 15),
-        text = element_text(size=15),legend.position="bottom")
-```
+  theme_bw()
 
-```{r}
+# Logistic regression with spline
 log_reg_spl.emm <- emmeans(log_reg_spl, ~ age, at = list(age = age_range), type = "response")
 
 log_reg_spl.ctrs <- emmeans::contrast(log_reg_spl.emm, "trt.vs.ctrl", ref = paste0("age", ref), 
@@ -166,13 +254,11 @@ log_reg_spl.ctrs %>%
   as.data.frame() %>%
   bind_cols("age" = age_range[age_range != ref]) %>% 
   ggplot(., aes(x=age, y=odds.ratio)) +
-  geom_line() +
-  geom_ribbon(aes(ymin=asymp.LCL, ymax=asymp.UCL), alpha=0.15, linetype=0) +
   geom_hline(yintercept=1, color = "red") +
+  geom_line() +
+  geom_ribbon(aes(ymin=asymp.LCL, ymax=asymp.UCL), alpha = .2, linetype = 0) +
   labs(x = "age", y = "Odds Ratio") +
-  theme_bw() +
-  theme(legend.title = element_text(size = 15, face = 'bold'),
-        legend.text = element_text(size = 15),
-        text = element_text(size=15),legend.position="bottom")
+  theme_bw()
 ```
+
 

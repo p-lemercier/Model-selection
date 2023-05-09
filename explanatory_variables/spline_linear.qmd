@@ -1,13 +1,16 @@
 ---
-title: "Spline in a Linear regression model"
+title: "Spline in a Linear Regression Model"
 ---
 
-# Exemple in diabetes
+We provide an illustration of the use of restricted cubic splines in the case of diabetes.
+
+# The Pima Indians Diabetes Database
 
 ```{r}
 #| message: false
 #| warning: false
 
+# Load libraries
 library(dplyr)
 library(ggplot2)
 library(broom)
@@ -16,121 +19,206 @@ library(rms)
 library(emmeans)
 library(ggeffects)
 
-```
-
-# The Pima Indians Diabetes Database dataset
-
-```{r}
 data("PimaIndiansDiabetes2", package = "mlbench")
 
+# We remove women with missing glucose concentration
 PimaIndiansDiabetes2 <- PimaIndiansDiabetes2 %>%
   filter(!is.na(glucose))
-
-str(PimaIndiansDiabetes2)
 ```
 
-# Scatterplot
+For this example, we used the Pima Indians Diabetes Database from the `mlbench` library.
+
+The dataset consists of 9 demographic and clinical variables collected in women 21 years and older of [Pima Indian](https://en.wikipedia.org/wiki/Akimel_O%27odham) heritage. This population is known to have a high prevalence of type 2 diabetes.
+
+::: panel-tabset
+## Description
 
 ```{r}
+#| R.options:
+#|  knitr.kable.NA: ""
+
+summary(PimaIndiansDiabetes2) %>%
+  knitr::kable()
+```
+
+## Overview
+
+```{r}
+PimaIndiansDiabetes2
+```
+:::
+
+List of variables:
+
+-   pregnant : Number of times pregnant
+-   glucose : Plasma glucose concentration (glucose tolerance test)
+-   pressure : Diastolic blood pressure (mm Hg)
+-   triceps : Triceps skin fold thickness (mm)
+-   insulin : 2-Hour serum insulin (mu U/ml)
+-   mass : Body mass index (weight in kg/(height in m)^2^)
+-   pedigree : Diabetes pedigree function
+-   age : Age (years)
+-   diabetes : Test for diabetes (neg/pos)
+
+# Modelise age as continous variable
+
+First let's have a look at @fig-age-glc, showing the relationship between plasma glucose concentration and age.
+
+```{r}
+#| label: fig-age-glc
+#| fig-cap: "Plasma glucose concentration according to age <br> The blue curve is a local smoothing (loess) fitting the observed data."
+#| fig-align: left
+
 ggplot(PimaIndiansDiabetes2, aes(age, glucose)) +
-  geom_point() +
+  geom_point(alpha = .2) +
   stat_smooth(method = "loess", formula = y ~ x, alpha = 0.17) +
   theme_bw()
 ```
 
+Now we construct a linear regression model of the relationship between glucose and age.
 
-## Modelise age as continous variable
+## Model summary
 
 ```{r}
 lin_reg <- lm(glucose ~ age, data = PimaIndiansDiabetes2)
 
-# Summarize the model
 summary(lin_reg)
 ```
 
-### Residuals
+We observe that glucose concentration increases significantly with age (β=0.69 ± 0.09, p-value \< 0.001).
 
-plot residuals vs x 
+## Residuals of the model
+
+@fig-lm-res shows the residuals of the model vs age. We can see that the linearity assumption looks satisfied.
 
 ```{r}
+#| label: fig-lm-res
+#| fig-cap: "Residuals and age <br> The blue area represents the 2.5 and 97.5 percentiles of the observed age distribution."
+#| fig-align: left
+
 lin_reg.pred <- augment(lin_reg)
   
 ggplot(lin_reg.pred, aes(x=age, y=.resid)) +
-  geom_hline(yintercept=0, color = "red", linetype = "dashed") +
-  geom_point(alpha = 0.2) +
-  stat_smooth(method = "loess", formula = y ~ x, alpha = 0.17) + 
-  theme_bw()+
-  theme(legend.text = element_text(size = 25),
-        text = element_text(size=25)) +
-  labs(x = "Age",
-       y = "Raw residuals") + 
+  geom_hline(yintercept = 0, color = "red", linetype = "dashed") +
+  geom_point(alpha = .2) +
+  stat_smooth(method = "loess", formula = y ~ x, alpha = 0.2) + 
+  labs(x = "Age", y = "Raw residuals") + 
   annotate("rect", 
-           xmin = quantile(lin_reg.pred$age,0.025),
-           xmax = quantile(lin_reg.pred$age,0.975),
-           ymin = -Inf, ymax = Inf, alpha = 0.2, fill = "#99CCCC")
+           xmin = quantile(lin_reg.pred$age, .025),
+           xmax = quantile(lin_reg.pred$age, .975),
+           ymin = -Inf, ymax = Inf, alpha = .2, fill = "#99CCCC") +
+  theme_bw()
 ```
 
-## Splines
+# Modelise age with splines
+
+The restricted cubic splines are computed with the `rcs` function from the `rms` library.
+
+We compare the following model using the likelihood-ratio test.
+
+1.  glucose ~ age : model with age as continous
+
+2.  glucose ~ rcs(age) : model with splines
 
 ```{r}
+#| R.options:
+#|  knitr.kable.NA: ""
+
 lin_reg_spl <- lm(glucose ~ rcs(age), data = PimaIndiansDiabetes2)
 
-anova(lin_reg, lin_reg_spl, test = "LRT")
+anova(lin_reg, lin_reg_spl, test = "LRT") %>%
+  knitr::kable(digits = 3, row.names = T)
 ```
 
-The model with splines tends to fit better
+Comparison of the two models shows that the relationship between glucose and age is linear as suggested by the analysis of residuals (@fig-lm-res).
 
 ```{r}
+#| include: false
+
 AIC(lin_reg, lin_reg_spl)
 ```
 
 ```{r}
+#| include: false
+
 anova(lin_reg_spl)
 ```
+
+Since the model with continuous age is valid, it is not necessary to use splines.
+
+However, for illustrative purposes, let's look at the summary of the model with splines.
+
+## Model summary
 
 ```{r}
 summary(lin_reg_spl)
 ```
 
-😭
+We cannot interpret the model's coefficients. 😭
+We need to use graphic representations.
+
+# Vizualisation of the models
 
 ## Compare predictions
 
+@fig-pred show the predictions of the models.
+
 ```{r}
+#| label: fig-pred
+#| fig-cap: "Comparison of models predictions"
+#| fig-align: left
+
 lin_reg_spl.pred <- predict(lin_reg_spl, type = "response", interval = "confidence")
 
 ggplot(lin_reg.pred, aes(x = age)) +
+  geom_point(aes(y = glucose), alpha = .2) +
   stat_smooth(aes(y = glucose, color = "LOESS"), method = "loess", formula = y ~ x, se = FALSE,) + 
   geom_line(aes(y = .fitted, color = "Linear regression"), linewidth = 1) +
   geom_line(aes(y = lin_reg_spl.pred[,c("fit")], color = "Linear regression with spline"), linewidth = 1) +
   scale_color_manual(values=c("LOESS" = "#CC3333", 
                               "Linear regression" = "cyan4", 
                               "Linear regression with spline" = "goldenrod2")) +
-  labs(x = "Age", y = "Glucose", color = "") +
-  theme_bw() +
-  theme(legend.title = element_text(size = 15, face = 'bold'),
-        legend.text = element_text(size = 15),
-        text = element_text(size=15),legend.position="bottom")
+  labs(x = "age", y = "glucose", color = "") +
+  theme_bw() + 
+  theme(legend.position="bottom")
 ```
 
+@fig-pred-ci show the predictions with confidence band of the models.
+
 ```{r}
-#### Visualization
+#| label: fig-pred-ci
+#| fig-cap: "Comparison of models predictions"
+#| fig-subcap: 
+#|   - "Linear regression"
+#|   - "Linear regression with spline"
+#| layout-ncol: 2
+#| fig-align: left
 
-ggemmeans(lin_reg, terms = "age") %>%
-  plot(add.data = F)
+ggpredict(lin_reg, terms = "age") %>%
+  plot(add.data = T)
 
-ggemmeans(lin_reg_spl, terms = "age") %>%
-  plot(add.data = F)
+ggpredict(lin_reg_spl, terms = "age") %>%
+  plot(add.data = T)
 ```
 
-## Contrast
+## Contrast analysis
 
-We compare to age 30.
+In @fig-ctrs, we compare the difference in plasma glucose concentration with a reference age (e.g. 30).
 
 ```{r}
-age_range <- with(PimaIndiansDiabetes2, min(age):max(age))
+#| label: fig-ctrs
+#| fig-cap: "Contrast analysis in both models"
+#| fig-subcap: 
+#|   - "Linear regression"
+#|   - "Linear regression with spline"
+#| layout-ncol: 2
+#| fig-align: left
+
+# Set up
+age_range <- with(PimaIndiansDiabetes2, seq(min(age), max(age), by = .5))
 ref <- 30
 
+# Linear regression
 lin_reg.emm <- emmeans(lin_reg, ~ age, at = list(age = age_range), type = "response")
 
 lin_reg.ctrs <- emmeans::contrast(lin_reg.emm, "trt.vs.ctrl", ref = paste0("age", ref), 
@@ -140,17 +228,13 @@ lin_reg.ctrs %>%
   as.data.frame() %>%
   bind_cols("age" = age_range[age_range != ref]) %>% 
   ggplot(., aes(x=age, y=estimate)) +
+  geom_hline(yintercept = 0, color = "red") +
   geom_line() +
-  geom_ribbon(aes(ymin=lower.CL, ymax=upper.CL), alpha=0.15, linetype=0) +
-  geom_hline(yintercept=0, color = "red") +
+  geom_ribbon(aes(ymin=lower.CL, ymax=upper.CL), alpha = .2, linetype = 0) +
   labs(x = "age", y = "Glucose (Difference)") +
-  theme_bw() +
-  theme(legend.title = element_text(size = 15, face = 'bold'),
-        legend.text = element_text(size = 15),
-        text = element_text(size=15),legend.position="bottom")
-```
+  theme_bw()
 
-```{r}
+# Linear regression with spline
 lin_reg_spl.emm <- emmeans(lin_reg_spl, ~ age, at = list(age = age_range), type = "response")
 
 lin_reg_spl.ctrs <- emmeans::contrast(lin_reg_spl.emm, "trt.vs.ctrl", ref = paste0("age", ref), 
@@ -160,13 +244,9 @@ lin_reg_spl.ctrs %>%
   as.data.frame() %>%
   bind_cols("age" = age_range[age_range != ref]) %>% 
   ggplot(., aes(x=age, y=estimate)) +
+  geom_hline(yintercept = 0, color = "red") +
   geom_line() +
-  geom_ribbon(aes(ymin=lower.CL, ymax=upper.CL), alpha=0.15, linetype=0) +
-  geom_hline(yintercept=0, color = "red") +
+  geom_ribbon(aes(ymin=lower.CL, ymax=upper.CL), alpha = .2, linetype = 0) +
   labs(x = "age", y = "Glucose (Difference)") +
-  theme_bw() +
-  theme(legend.title = element_text(size = 15, face = 'bold'),
-        legend.text = element_text(size = 15),
-        text = element_text(size=15),legend.position="bottom")
+  theme_bw()
 ```
-

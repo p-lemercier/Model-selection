@@ -1,13 +1,16 @@
 ---
-title: "Spline in a Cox regression model"
+title: "Spline in a Cox Regression Model"
 ---
 
-# Exemple in breast cancer
+We provide an illustration of the use of restricted cubic splines in the case of breast cancer.
+
+# The Rotterdam dataset
 
 ```{r}
 #| message: false
 #| warning: false
 
+# Load libraries
 library(dplyr)
 library(ggplot2)
 library(survival)
@@ -15,50 +18,105 @@ library(survminer)
 library(rms)
 library(emmeans)
 
-# see https://cran.r-project.org/web/packages/survival/vignettes/splines.pdf
+data("gbsg", package = "survival")
+
+# We set some variables as factors
+gbsg <- gbsg %>%
+  mutate(pid = factor(pid),
+         # status = factor(status),
+         meno = factor(meno), 
+         hormon = factor(hormon), 
+         grade = factor(grade))
 ```
 
-# The Rotterdam dataset
+For this example, we used the database constructed by the German Breast Cancer Study Group from the `survival` library.
+
+::: panel-tabset
+## Description
 
 ```{r}
-str(gbsg)
+#| R.options:
+#|  knitr.kable.NA: ""
+
+gbsg %>%
+  mutate(status = factor(status)) %>%
+  summary() %>%
+  knitr::kable()
 ```
 
-# Kaplan-Meier curve
+## Overview
 
 ```{r}
-ggsurvplot(survfit(Surv(rfstime, status) ~ 1, data=gbsg),
+gbsg
+```
+:::
+
+List of variables:
+
+-   pid: Patient identifier
+-   age: Age (years)
+-   meno: Menopausal status (0 = premenopausal, 1 = postmenopausal)
+-   size: Tumor size (mm)
+-   grade: Tumor grade
+-   nodes: Number of positive lymph nodes
+-   pgr: Progesterone receptors (fmol/l)
+-   er: Estrogen receptors (fmol/l)
+-   hormon: Hormonal therapy (0 = no, 1= yes)
+-   rfstime: Recurrence-free survival time; days to first of reccurence, death or last follow-up
+-   status: 0 = alive without recurrence, 1 = recurrence or death
+
+# Modelise age as continous variable
+
+First let's have a look at @fig-km, showing the Kaplan-Meier curve of recurrence-free survival according to menopausal status.
+
+```{r}
+#| label: fig-km
+#| fig-cap: "Kaplan-Meier curve of recurrence-free survival by menopausal status"
+#| fig-align: left
+#| fig-width: 8
+#| fig-height: 6
+
+ggsurvplot(survfit(Surv(rfstime, status) ~ meno, data=gbsg),
            pval = FALSE, conf.int = TRUE,
            xscale = 365.25,
            break.time.by = 365.25,
-           ylab = "Year since ",
+           fontsize = 4,
+           xlab = "Year since ",
            risk.table = "abs_pct",  # absolute number and percentage at risk.
            risk.table.y.text = FALSE, # show bars instead of names in text annotations
            surv.median.line = "none", # Specify median survival
            ggtheme = theme_bw())
 ```
 
+Now we construct a Cox proportional-hazards model with menopausal status and age.
 
-## Modelise age as continous variable
+## Model summary
 
 ```{r}
 mcox <- coxph(Surv(rfstime, status) ~ meno + age, data=gbsg)
 
-# Summarize the model
 summary(mcox, scale=365.25)
 ```
 
-### Residuals
+We observe that the risk of recurrence tends to decrease with age (p-value = 0.074).
+
+## Residuals of the model
+
+@fig-mart-res shows the Martingale residuals of the model vs age. We can see that the linearity assumption does not look satisfied.
 
 ```{r}
-# survminer::ggcoxdiagnostics(mcox, type = "martingale")
+#| label: fig-mart-res
+#| fig-cap: "Martingale residuals and age <br> The blue area represents the 2.5 and 97.5 percentiles of the observed age distribution."
+#| fig-align: left
+
+# try also: survminer::ggcoxdiagnostics(mcox, type = "martingale")
 
 martResb <- residuals(mcox, process = "Event")
 
 ggplot(gbsg, aes(x=age, y=martResb)) +
+  geom_hline(yintercept=0, color = "red", linetype = "dashed") + 
   geom_point(alpha = 0.2) +
   stat_smooth(method = "loess", formula = y ~ x, alpha = 0.17) + 
-  geom_hline(yintercept=0, color = "red") + 
   annotate("rect", xmin = quantile(gbsg$age,0.025),
            xmax = quantile(gbsg$age,0.975),
            ymin = -Inf, ymax = Inf, alpha = 0.2, fill = "#99CCCC") +
@@ -67,44 +125,76 @@ ggplot(gbsg, aes(x=age, y=martResb)) +
   theme_bw()
 ```
 
-## Splines
+# Modelise age with splines
+
+The restricted cubic splines are computed with the `rcs` function from the `rms` library.
+
+We compare the following model using the likelihood-ratio test.
+
+1.  Surv(rfstime, status) ~ meno + age : model with age as continous
+
+2.  Surv(rfstime, status) ~ meno + rcs(age) : model with splines
 
 ```{r}
+#| R.options:
+#|  knitr.kable.NA: ""
+
 mcox_spl <- coxph(Surv(rfstime, status) ~ meno + rcs(age), data=gbsg)
 
-anova(mcox, mcox_spl, test = "LRT")
+anova(mcox, mcox_spl, test = "LRT") %>%
+  knitr::kable(digits = 3, row.names = T)
 ```
 
-The model with splines tends to fit better
+Comparison of the two models shows that the model with splines fits significantly better.
+As suggested by the analysis of residuals (@fig-mart-res), the relationship between the risk of recurrence and age is not linear.
 
 ```{r}
+#| include: false
+
 AIC(mcox, mcox_spl)
 ```
 
 ```{r}
+#| include: false
+
 anova(mcox_spl)
 ```
+
+Now let's have look at the summary of the model with splines.
+
+## Model summary
 
 ```{r}
 summary(mcox_spl, scale=365.25)
 ```
 
-😭
+We cannot interpret the model's coefficients. 😭
+We need to use graphic representations.
+
+# Vizualisation of the models
 
 ## Compare predictions
 
-We predict survival probability at 3-years according to age
+In @fig-pred, we show the predicted recurrence-free survival probability at 3-years according to age.
 
 ```{r}
+#| label: fig-pred
+#| fig-cap: "Comparison of models predictions of the 3-years survival"
+#| fig-align: left
+
+# Set up
 age_range <- seq(24, 90, by = 1)
 t <- 3
 
-mcox_pred <- summary(survfit(mcox, newdata = data.frame(age = age_range, meno = 1)), 
+# Cox regression
+mcox_pred <- summary(survfit(mcox, newdata = data.frame(age = age_range, meno = factor(1))), 
                      times = t*365.25, scale=365.25)
 
-mcox_spl_pred <- summary(survfit(mcox_spl, newdata = data.frame(age = age_range, meno = 1)), 
+# Cox regression with spline
+mcox_spl_pred <- summary(survfit(mcox_spl, newdata = data.frame(age = age_range, meno = factor(1))), 
                      times = t*365.25, scale=365.25)
 
+# Merge
 mcox_pred_all <- bind_cols(age = rep(age_range, 2),
                            Model = rep(c("Cox", "Cox_spline"), each = length(age_range)),
                            Time = t,
@@ -126,19 +216,55 @@ ggplot(mcox_pred_all, aes(x = age, y = Surv_Prob)) +
 ```
 
 ```{r}
-# #### Visualization
-# library(ggeffects)
-# ggpredict(mcox_spl, terms = "age", type = "survival") %>%
-#   plot()
+#| include: false
+#| label: fig-pred-ci
+#| fig-cap: "Comparison of model predictions"
+#| fig-subcap: 
+#|   - "Linear regression"
+#|   - "Linear regression with spline"
+#| layout-ncol: 2
+#| fig-align: left
+
+ggeffects::ggpredict(mcox, terms = "age", type = "survival") %>%
+  plot()
+
+ggeffects::ggpredict(mcox_spl, terms = "age", type = "survival") %>%
+  plot()
 ```
 
-## Contrast
+## Contrast analysis
 
-We estimate the HR compare to age 45.
+In @fig-ctrs, we compare the Hazard Ratio of recurrence with a reference age (e.g. 45).
 
 ```{r}
+#| label: fig-ctrs
+#| fig-cap: "Contrast analysis in both models"
+#| fig-subcap: 
+#|   - "Cox regression"
+#|   - "Cox regression with spline"
+#| layout-ncol: 2
+#| fig-align: left
+
+# Set up
 ref <- 45
 
+# Cox regression
+mcox_emm <- emmeans(mcox, ~ age, at = list(age = age_range), type = "response")
+
+mcox_ctrs <- emmeans::contrast(mcox_emm, "trt.vs.ctrl", ref = paste0("age", ref), 
+                               infer = T,  adjust = "none")
+  
+mcox_ctrs %>%
+  as.data.frame() %>%
+  bind_cols("age" = age_range[age_range != ref]) %>% 
+  ggplot(., aes(x=age, y=ratio)) +
+  geom_hline(yintercept = 1, color = "red") +
+  geom_line() +
+  geom_ribbon(aes(ymin=asymp.LCL, ymax=asymp.UCL), alpha = .2, linetype = 0) +
+  labs(x = "age", y = "Hazard Ratio") +
+  theme_bw()
+
+# Cox regression with spline
 mcox_spl_emm <- emmeans(mcox_spl, ~ age, at = list(age = age_range), type = "response")
 
 mcox_spl_ctrs <- emmeans::contrast(mcox_spl_emm, "trt.vs.ctrl", ref = paste0("age", ref), 
@@ -148,12 +274,19 @@ mcox_spl_ctrs %>%
   as.data.frame() %>%
   bind_cols("age" = age_range[age_range != ref]) %>% 
   ggplot(., aes(x=age, y=ratio)) +
+  geom_hline(yintercept = 1, color = "red") +
   geom_line() +
-  geom_ribbon(aes(ymin=asymp.LCL, ymax=asymp.UCL), alpha=0.15, linetype=0) +
-  geom_hline(yintercept=1, color = "red") +
-  labs(x = "age", y = "Hazard ratio") +
-  theme_bw() +
-  theme(legend.title = element_text(size = 15, face = 'bold'),
-        legend.text = element_text(size = 15),
-        text = element_text(size=15),legend.position="bottom")
+  geom_ribbon(aes(ymin=asymp.LCL, ymax=asymp.UCL), alpha = .2, linetype = 0) +
+  labs(x = "age", y = "Hazard Ratio") +
+  theme_bw()
 ```
+
+```{r}
+#| R.options:
+#|  knitr.kable.NA: ""
+
+mcox_spl_ctrs[mcox_spl_ctrs@grid == "age30 - age45"] %>%
+  knitr::kable(digits = 3)
+```
+
+
